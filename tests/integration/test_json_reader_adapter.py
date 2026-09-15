@@ -19,16 +19,16 @@ def test_read_real_sample_viral_videos_file() -> None:
 
 
 def test_read_from_records_dict_list() -> None:
-    """Verify reading from raw dictionary list with dataset-specific keys."""
+    """Verify reading from raw dictionary list with standard keys."""
     adapter = JsonDataReaderAdapter()
     raw_list = [
         {
             "caption": "Test video",
-            "hastag": ["#test1", "#test2"],
-            "trancsript": "This is a fast-paced opening test transcript.",
-            "hình ảnh": "https://img.jpg",
-            "nội dung tóm tắt": "Test summary",
-            "url_video": "https://vid.mp4",
+            "hashtag": ["#test1", "#test2"],
+            "transcript": "This is a fast-paced opening test transcript.",
+            "image_url": "https://img.jpg",
+            "summary": "Test summary",
+            "video_url": "https://vid.mp4",
         }
     ]
 

@@ -6,6 +6,11 @@ from datetime import datetime, timedelta, timezone
 VIETNAM_TZ = timezone(timedelta(hours=7))
 
 
+def now_utc() -> datetime:
+    """Returns the current datetime in UTC."""
+    return datetime.now(timezone.utc)
+
+
 def now_ict() -> datetime:
     """Returns the current datetime in Vietnam time (ICT) as a naive datetime."""
     return datetime.now(VIETNAM_TZ).replace(tzinfo=None)

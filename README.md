@@ -79,7 +79,7 @@ Toàn bộ tài liệu chi tiết được tổ chức trong thư mục `docs/`:
 
 ## 🚀 4. Cấu Trúc Dữ Liệu Kho Video (Data Contract)
 
-Hệ thống nạp trực tiếp file JSON từ kho dữ liệu có cấu trúc tiếng Anh chuẩn:
+Hệ thống nạp trực tiếp file JSON từ kho dữ liệu với cấu trúc chuẩn thống nhất:
 
 ```json
 [
@@ -94,7 +94,14 @@ Hệ thống nạp trực tiếp file JSON từ kho dữ liệu có cấu trúc 
 ]
 ```
 
-> **Lưu ý tương thích ngược:** Hệ thống vẫn hỗ trợ nạp các file dữ liệu cũ chứa key tiếng Việt hoặc typo (`trancsript`, `hastag`, `hình ảnh`, `nội dung tóm tắt`, `url_video`).
+| Trường (Key) | Kiểu Dữ Liệu | Mô Tả Chi Tiết |
+|---|---|---|
+| `caption` | `string` | Tiêu đề hoặc mô tả bài đăng của video |
+| `hashtag` | `string` / `list[string]` | Thẻ hashtag phân loại chủ đề và xu hướng |
+| `transcript` | `string` | Toàn bộ lời thoại video (dùng để vector hóa & học nhịp kịch bản) |
+| `image_url` | `string` | URL ảnh thumbnail hoặc keyframe của video |
+| `summary` | `string` | Tóm tắt ý chính của video (ngữ cảnh vector search) |
+| `video_url` | `string` | Đường dẫn file video gốc lưu trữ tại MinIO Storage |
 
 ---
 

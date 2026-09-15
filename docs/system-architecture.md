@@ -94,7 +94,7 @@ flowchart TD
   * `infra/llm/`: `SelfHostedLLMAdapter` — Kết nối API LLM self-hosted qua chuẩn OpenAI Chat Completions (`/v1/chat/completions`), hỗ trợ format JSON Mode, xử lý retry và timeout.
   * `infra/embeddings/`: `SelfHostedEmbeddingAdapter` — Kết nối API mô hình Embedding riêng của bạn (chuẩn `/v1/embeddings` hoặc custom POST endpoint).
   * `infra/vector_store/`: `ChromaVectorStoreAdapter` — Triển khai lưu trữ vector với ChromaDB chế độ persistent on-disk, quản lý collections, indexing cosine similarity.
-  * `infra/data_readers/`: `JsonDataReaderAdapter` — Đọc file JSON từ kho dữ liệu, linh hoạt ánh xạ các trường tiếng Việt (`caption`, `hastag`, `trancsript`, `hình ảnh`, `nội dung tóm tắt`, `url_video`).
+  * `infra/data_readers/`: `JsonDataReaderAdapter` — Đọc và chuẩn hóa file JSON từ kho dữ liệu theo định dạng chuẩn (`caption`, `hashtag`, `transcript`, `image_url`, `summary`, `video_url`).
   * `infra/config/`: `Settings` — Quản lý biến môi trường bằng `pydantic-settings` (URL, API keys, paths).
 
 ### 2.3. Tầng Giao Diện: Interfaces Layer (`src/interfaces/`)

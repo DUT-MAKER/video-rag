@@ -40,16 +40,16 @@ Trong sản xuất nội dung video ngắn (Short-form Video):
 
 ## 3. Cấu Trúc Dữ Liệu Đầu Vào (Data Contract)
 
-Dữ liệu kho video có định dạng JSON chuẩn tiếng Anh (hỗ trợ tương thích ngược với các key tiếng Việt cũ):
+Dữ liệu kho video có định dạng JSON chuẩn thống nhất:
 
-| Trường Chuẩn (English) | Legacy Aliases (Tiếng Việt / Typo) | Kiểu Dữ Liệu | Mục Đích Trong RAG |
-|------------------------|-----------------------------------|--------------|---------------------|
-| `caption` | `title`, `tieu_de` | `string` | Tiêu đề hoặc mô tả bài đăng (context & hook) |
-| `hashtag` | `hastag`, `tags` | `string` / `list[string]` | Thẻ hashtag phân loại chủ đề, xu hướng |
-| `transcript` | `trancsript`, `loi_thoai` | `string` | Toàn bộ lời thoại video (vector hóa & học nhịp kịch bản) |
-| `image_url` | `hình ảnh`, `hinh_anh`, `thumbnail` | `string` | URL ảnh thumbnail hoặc keyframe của video |
-| `summary` | `nội dung tóm tắt`, `noi_dung_tom_tat` | `string` | Tóm tắt ý chính của video (ngữ cảnh vector search) |
-| `video_url` | `url_video`, `link_video` | `string` | Đường dẫn file video gốc lưu trữ tại MinIO Storage |
+| Trường Chuẩn (Key) | Kiểu Dữ Liệu | Mục Đích Trong RAG |
+|--------------------|--------------|---------------------|
+| `caption` | `string` | Tiêu đề hoặc mô tả bài đăng (context & hook) |
+| `hashtag` | `string` / `list[string]` | Thẻ hashtag phân loại chủ đề, xu hướng |
+| `transcript` | `string` | Toàn bộ lời thoại video (vector hóa & học nhịp kịch bản) |
+| `image_url` | `string` | URL ảnh thumbnail hoặc keyframe của video |
+| `summary` | `string` | Tóm tắt ý chính của video (ngữ cảnh vector search) |
+| `video_url` | `string` | Đường dẫn file video gốc lưu trữ tại MinIO Storage |
 
 ---
 

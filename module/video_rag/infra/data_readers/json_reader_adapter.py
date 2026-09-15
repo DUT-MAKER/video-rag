@@ -53,25 +53,18 @@ class JsonDataReaderAdapter(IDataReaderPort):
             if not isinstance(item, dict):
                 continue
 
-            caption = str(item.get("caption") or item.get("title") or item.get("tieu_de") or "").strip()
+            caption = str(item.get("caption") or "").strip()
 
-            raw_hashtag = item.get("hashtag") or item.get("hastag") or item.get("tags") or ""
+            raw_hashtag = item.get("hashtag") or ""
             if isinstance(raw_hashtag, list):
                 hashtag = " ".join(str(h) for h in raw_hashtag).strip()
             else:
                 hashtag = str(raw_hashtag).strip()
 
-            transcript = str(item.get("transcript") or item.get("trancsript") or item.get("loi_thoai") or "").strip()
-
-            image_url = str(
-                item.get("image_url") or item.get("hình ảnh") or item.get("hinh_anh") or item.get("thumbnail") or ""
-            ).strip()
-
-            summary = str(
-                item.get("summary") or item.get("nội dung tóm tắt") or item.get("noi_dung_tom_tat") or ""
-            ).strip()
-
-            video_url = str(item.get("video_url") or item.get("url_video") or item.get("link_video") or "").strip()
+            transcript = str(item.get("transcript") or "").strip()
+            image_url = str(item.get("image_url") or "").strip()
+            summary = str(item.get("summary") or "").strip()
+            video_url = str(item.get("video_url") or "").strip()
 
             if not caption and not transcript:
                 continue
