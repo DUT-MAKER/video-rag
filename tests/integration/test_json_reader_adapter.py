@@ -1,6 +1,4 @@
-"""Integration tests for JsonDataReaderAdapter."""
-
-from src.infra.data_readers.json_reader_adapter import JsonDataReaderAdapter
+from module.video_rag.infra.data_readers.json_reader_adapter import JsonDataReaderAdapter
 
 
 def test_read_real_sample_viral_videos_file() -> None:

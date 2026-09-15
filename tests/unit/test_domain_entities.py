@@ -1,10 +1,10 @@
 """Unit tests for domain entities and value objects."""
 
-from src.core.domain.entities.reference_pattern import ReferencedPattern
-from src.core.domain.entities.video_record import RawVideoRecord
-from src.core.domain.entities.viral_script import CallToAction, Hook, Scene, ViralScript
-from src.core.domain.value_objects.hook_type import HookType
-from src.core.domain.value_objects.platform_target import PlatformTarget
+from module.video_rag.domain.entities.reference_pattern import ReferencedPattern
+from module.video_rag.domain.entities.video_record import RawVideoRecord
+from module.video_rag.domain.entities.viral_script import CallToAction, Hook, Scene, ViralScript
+from module.video_rag.domain.value_objects.hook_type import HookType
+from module.video_rag.domain.value_objects.platform_target import PlatformTarget
 
 
 def test_raw_video_record_hook_extraction() -> None:

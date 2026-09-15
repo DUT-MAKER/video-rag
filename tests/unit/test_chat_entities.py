@@ -1,10 +1,10 @@
 """Unit tests for chat domain entities and value objects."""
 
-from src.core.domain.entities.chat_message import ChatMessage
-from src.core.domain.entities.chat_session import ChatSession
-from src.core.domain.entities.reference_pattern import ReferencedPattern
-from src.core.domain.value_objects.chat_intent import ChatIntent
-from src.core.domain.value_objects.message_role import MessageRole
+from module.video_rag.domain.entities.chat_message import ChatMessage
+from module.video_rag.domain.entities.chat_session import ChatSession
+from module.video_rag.domain.entities.reference_pattern import ReferencedPattern
+from module.video_rag.domain.value_objects.chat_intent import ChatIntent
+from module.video_rag.domain.value_objects.message_role import MessageRole
 
 
 def test_chat_message_creation_and_serialization() -> None:

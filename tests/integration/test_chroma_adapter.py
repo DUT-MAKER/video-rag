@@ -5,7 +5,7 @@ import tempfile
 
 import pytest
 
-from src.infra.vector_store.chroma_adapter import ChromaVectorStoreAdapter
+from module.video_rag.infra.vector_store.chroma_adapter import ChromaVectorStoreAdapter
 
 
 @pytest.fixture

@@ -5,19 +5,19 @@ from typing import Any
 
 import pytest
 
-from src.core.domain.entities.chat_message import ChatMessage
-from src.core.domain.entities.chat_session import ChatSession
-from src.core.domain.entities.reference_pattern import SimilarVideoContext
-from src.core.domain.entities.viral_script import CallToAction, Hook, Scene, ViralScript
-from src.core.domain.exceptions import DomainValidationError
-from src.core.domain.value_objects.chat_intent import ChatIntent
-from src.core.domain.value_objects.hook_type import HookType
-from src.core.domain.value_objects.platform_target import PlatformTarget
-from src.core.ports.chat_session_store_port import IChatSessionStorePort
-from src.core.ports.embedding_port import IEmbeddingPort
-from src.core.ports.llm_port import ILLMPort
-from src.core.ports.vector_store_port import IVectorStorePort
-from src.core.use_cases.chat_with_viral_assistant import ChatWithViralAssistantUseCase
+from module.video_rag.domain.entities.chat_message import ChatMessage
+from module.video_rag.domain.entities.chat_session import ChatSession
+from module.video_rag.domain.entities.reference_pattern import SimilarVideoContext
+from module.video_rag.domain.entities.viral_script import CallToAction, Hook, Scene, ViralScript
+from module.video_rag.domain.exceptions import DomainValidationError
+from module.video_rag.domain.value_objects.chat_intent import ChatIntent
+from module.video_rag.domain.value_objects.hook_type import HookType
+from module.video_rag.domain.value_objects.platform_target import PlatformTarget
+from module.video_rag.port.chat_session_store_port import IChatSessionStorePort
+from module.video_rag.port.embedding_port import IEmbeddingPort
+from module.video_rag.port.llm_port import ILLMPort
+from module.video_rag.port.vector_store_port import IVectorStorePort
+from module.video_rag.use_case.chat_with_viral_assistant import ChatWithViralAssistantUseCase
 
 
 class FakeChatSessionStore(IChatSessionStorePort):

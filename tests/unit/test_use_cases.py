@@ -4,19 +4,19 @@ from typing import Any
 
 import pytest
 
-from src.core.domain.entities.reference_pattern import SimilarVideoContext
-from src.core.domain.entities.video_record import RawVideoRecord
-from src.core.domain.entities.viral_script import CallToAction, Hook, Scene, ViralScript
-from src.core.domain.exceptions import DomainValidationError
-from src.core.domain.value_objects.hook_type import HookType
-from src.core.domain.value_objects.platform_target import PlatformTarget
-from src.core.ports.data_reader_port import IDataReaderPort
-from src.core.ports.embedding_port import IEmbeddingPort
-from src.core.ports.llm_port import ILLMPort
-from src.core.ports.vector_store_port import IVectorStorePort
-from src.core.use_cases.generate_viral_script import GenerateViralScriptUseCase
-from src.core.use_cases.ingest_video_data import IngestVideoDataUseCase
-from src.core.use_cases.search_viral_patterns import SearchViralPatternsUseCase
+from module.video_rag.domain.entities.reference_pattern import SimilarVideoContext
+from module.video_rag.domain.entities.video_record import RawVideoRecord
+from module.video_rag.domain.entities.viral_script import CallToAction, Hook, Scene, ViralScript
+from module.video_rag.domain.exceptions import DomainValidationError
+from module.video_rag.domain.value_objects.hook_type import HookType
+from module.video_rag.domain.value_objects.platform_target import PlatformTarget
+from module.video_rag.port.data_reader_port import IDataReaderPort
+from module.video_rag.port.embedding_port import IEmbeddingPort
+from module.video_rag.port.llm_port import ILLMPort
+from module.video_rag.port.vector_store_port import IVectorStorePort
+from module.video_rag.use_case.generate_viral_script import GenerateViralScriptUseCase
+from module.video_rag.use_case.ingest_video_data import IngestVideoDataUseCase
+from module.video_rag.use_case.search_viral_patterns import SearchViralPatternsUseCase
 
 
 class FakeDataReader(IDataReaderPort):

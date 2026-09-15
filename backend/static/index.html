@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ViralCopilot AI - Viral Short-Form Video Co-Pilot</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              base: "#0b0f19",
+              surface: "#111827",
+              elevated: "#1e293b",
+              primary: "#3b82f6",
+              accent: "#8b5cf6",
+              cta: "#f97316",
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons & Marked.js -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body class="bg-brand-base text-slate-100 flex flex-col h-screen w-screen overflow-hidden antialiased select-none">
+
+  <!-- Top Studio Header -->
+  <header class="h-14 border-b border-white/10 bg-brand-surface/80 backdrop-blur-md px-4 flex items-center justify-between shrink-0 z-30">
+    <div class="flex items-center space-x-3">
+      <button id="toggle-sidebar-btn" class="p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors cursor-pointer" title="Toggle Sessions Sidebar">
+        <i data-lucide="menu" class="w-5 h-5"></i>
+      </button>
+      <div class="flex items-center space-x-2.5">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-primary to-brand-accent flex items-center justify-center shadow-lg shadow-blue-500/20">
+          <i data-lucide="sparkles" class="w-4 h-4 text-white"></i>
+        </div>
+        <span class="font-bold text-base tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">ViralCopilot</span>
+        <span class="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 tracking-wider">RAG Studio</span>
+      </div>
+    </div>
+
+    <!-- Center System Status Badges -->
+    <div class="hidden md:flex items-center space-x-3 text-xs">
+      <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span class="font-medium">pgvector & ChromaDB</span>
+      </div>
+      <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+        <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
+        <span class="font-medium">Self-Hosted LLM</span>
+      </div>
+    </div>
+
+    <!-- Right Action Bar -->
+    <div class="flex items-center space-x-2">
+      <button id="toggle-studio-btn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-medium border border-white/10 transition-all cursor-pointer">
+        <i data-lucide="film" class="w-4 h-4 text-brand-cta"></i>
+        <span class="hidden sm:inline">Script Studio</span>
+      </button>
+      <a href="/docs" target="_blank" class="p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors cursor-pointer" title="Open API Documentation">
+        <i data-lucide="book-open" class="w-4 h-4"></i>
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Body Layout (3 Columns) -->
+  <div class="flex-1 flex overflow-hidden relative">
+
+    <!-- Column 1: Left Sessions Sidebar -->
+    <aside id="sidebar" class="w-72 border-r border-white/10 bg-brand-surface/90 flex flex-col shrink-0 transition-all duration-300 z-20 absolute md:static inset-y-0 left-0 -translate-x-full md:translate-x-0">
+      <div class="p-3.5 border-b border-white/10 flex items-center justify-between">
+        <button id="new-chat-btn" class="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg bg-brand-primary hover:bg-blue-600 text-white font-medium text-xs shadow-md shadow-blue-500/25 transition-all cursor-pointer">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>New Co-Pilot Chat</span>
+        </button>
+      </div>
+
+      <!-- Session List Container -->
+      <div class="flex-1 overflow-y-auto p-2 space-y-1" id="sessions-container">
+        <div class="text-[11px] font-semibold tracking-wider uppercase text-slate-400 px-2 py-1.5">Conversations</div>
+        <div id="session-items" class="space-y-1">
+          <!-- Session buttons injected via JS -->
+        </div>
+      </div>
+
+      <!-- Knowledge Store Summary Footer -->
+      <div class="p-3 border-t border-white/10 bg-black/20 text-xs space-y-1.5">
+        <div class="flex items-center justify-between text-slate-400">
+          <span>Knowledge Benchmarks</span>
+          <span id="indexed-count" class="font-semibold text-slate-200">5 Videos</span>
+        </div>
+        <button id="reingest-btn" class="w-full text-left text-[11px] text-blue-400 hover:text-blue-300 flex items-center space-x-1 cursor-pointer">
+          <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+          <span>Refresh Benchmark Store</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Column 2: Center Conversational Canvas -->
+    <main class="flex-1 flex flex-col bg-brand-base overflow-hidden relative">
+
+      <!-- Messages Feed Scroll Container -->
+      <div id="chat-feed" class="flex-1 overflow-y-auto px-4 py-6 md:px-8 space-y-6 max-w-4xl w-full mx-auto">
+
+        <!-- Empty State Hero (Hidden when messages exist) -->
+        <div id="empty-state" class="flex flex-col items-center justify-center min-h-[70vh] text-center space-y-6">
+          <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-primary to-brand-accent flex items-center justify-center shadow-xl shadow-blue-500/20">
+            <i data-lucide="video" class="w-8 h-8 text-white"></i>
+          </div>
+          <div class="space-y-2 max-w-md">
+            <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-white">Viral Video AI Co-Pilot</h1>
+            <p class="text-sm text-slate-400 leading-relaxed">
+              Ground your short-form videos in proven high-retention patterns from the benchmark store. Brainstorm hooks, draft 45s storyboards, and generate visual prompts.
+            </p>
+          </div>
+
+          <!-- 4 Quick Prompt Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl text-left pt-2">
+            <button class="quick-prompt-btn glass-card p-3.5 rounded-xl flex flex-col space-y-1.5 cursor-pointer text-left" data-prompt="Gợi ý 3 hook mở đầu giật gân cho video về thói quen kỷ luật trong 21 ngày">
+              <div class="flex items-center space-x-2 text-brand-cta">
+                <i data-lucide="zap" class="w-4 h-4"></i>
+                <span class="text-xs font-semibold">Brainstorm Hooks</span>
+              </div>
+              <p class="text-xs text-slate-300">3 high-CTR hooks for 21-day discipline habit video</p>
+            </button>
+
+            <button class="quick-prompt-btn glass-card p-3.5 rounded-xl flex flex-col space-y-1.5 cursor-pointer text-left" data-prompt="Viết kịch bản 45s TikTok chi tiết về quản lý tài chính cá nhân cho Gen Z">
+              <div class="flex items-center space-x-2 text-brand-primary">
+                <i data-lucide="pen-tool" class="w-4 h-4"></i>
+                <span class="text-xs font-semibold">Draft Full Script</span>
+              </div>
+              <p class="text-xs text-slate-300">45-second TikTok script for Gen Z personal finance</p>
+            </button>
+
+            <button class="quick-prompt-btn glass-card p-3.5 rounded-xl flex flex-col space-y-1.5 cursor-pointer text-left" data-prompt="Chỉnh sửa phân cảnh 2 để tăng kịch tính và giữ chân người xem sau 5 giây đầu">
+              <div class="flex items-center space-x-2 text-brand-accent">
+                <i data-lucide="scissors" class="w-4 h-4"></i>
+                <span class="text-xs font-semibold">Refine Scene Pacing</span>
+              </div>
+              <p class="text-xs text-slate-300">Refine scene 2 with pattern interrupt retention</p>
+            </button>
+
+            <button class="quick-prompt-btn glass-card p-3.5 rounded-xl flex flex-col space-y-1.5 cursor-pointer text-left" data-prompt="Xuất toàn bộ prompt Midjourney / Flux và gợi ý góc quay camera cho từng cảnh">
+              <div class="flex items-center space-x-2 text-emerald-400">
+                <i data-lucide="camera" class="w-4 h-4"></i>
+                <span class="text-xs font-semibold">Export AI Prompts</span>
+              </div>
+              <p class="text-xs text-slate-300">Export cinematic Midjourney prompts for each scene</p>
+            </button>
+          </div>
+        </div>
+
+        <!-- Dynamic Message List -->
+        <div id="messages-list" class="space-y-6 pb-2">
+          <!-- Injected via app.js -->
+        </div>
+
+      </div>
+
+      <!-- Bottom Sticky Input Dock -->
+      <div class="border-t border-white/10 bg-brand-surface/90 backdrop-blur-md p-3 md:p-4 shrink-0">
+        <div class="max-w-4xl mx-auto space-y-2">
+          <div class="glass-panel rounded-2xl p-2 md:p-2.5 focus-within:border-blue-500/50 transition-all shadow-xl shadow-black/40">
+            <textarea
+              id="user-input"
+              rows="2"
+              placeholder="Ask ViralCopilot to brainstorm hooks, draft viral scripts, or refine scenes..."
+              class="w-full bg-transparent text-sm text-slate-100 placeholder-slate-500 resize-none outline-none px-2 py-1 leading-relaxed max-h-36"
+            ></textarea>
+
+            <div class="flex items-center justify-between pt-2 border-t border-white/5 text-xs text-slate-400">
+              <div class="flex items-center space-x-2">
+                <div class="flex items-center space-x-1.5 px-2 py-1 rounded-md bg-white/5">
+                  <i data-lucide="layers" class="w-3.5 h-3.5 text-slate-400"></i>
+                  <span class="text-[11px]">RAG Patterns:</span>
+                  <select id="top-k-select" class="bg-transparent text-slate-200 text-[11px] outline-none cursor-pointer">
+                    <option value="1" class="bg-slate-900">Top 1</option>
+                    <option value="2" class="bg-slate-900">Top 2</option>
+                    <option value="3" selected class="bg-slate-900">Top 3</option>
+                    <option value="5" class="bg-slate-900">Top 5</option>
+                  </select>
+                </div>
+                <span class="text-[11px] text-slate-500 hidden sm:inline">Press Shift+Enter for newline</span>
+              </div>
+
+              <div class="flex items-center space-x-2">
+                <button
+                  id="stop-btn"
+                  class="hidden px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 font-medium text-xs flex items-center space-x-1.5 transition-all cursor-pointer"
+                >
+                  <i data-lucide="square" class="w-3.5 h-3.5"></i>
+                  <span>Stop</span>
+                </button>
+                <button
+                  id="send-btn"
+                  class="px-4 py-1.5 rounded-xl bg-brand-primary hover:bg-blue-600 active:scale-95 text-white font-medium text-xs flex items-center space-x-1.5 shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+                >
+                  <span>Send</span>
+                  <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Column 3: Right "Viral Script Studio" Panel (Collapsible) -->
+    <aside id="studio-panel" class="w-96 border-l border-white/10 bg-brand-surface/95 flex flex-col shrink-0 transition-all duration-300 z-20 absolute md:static inset-y-0 right-0 translate-x-full md:translate-x-0 hidden">
+      <div class="p-3.5 border-b border-white/10 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="film" class="w-4 h-4 text-brand-cta"></i>
+          <span class="font-bold text-xs uppercase tracking-wider text-slate-200">Script Studio Draft</span>
+        </div>
+        <button id="close-studio-btn" class="p-1.5 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors cursor-pointer">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Studio Content -->
+      <div id="studio-content" class="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+        <div id="studio-empty" class="text-center py-16 space-y-3 text-slate-400">
+          <i data-lucide="clapperboard" class="w-10 h-10 mx-auto text-slate-600"></i>
+          <p>No active script draft in this session yet.</p>
+          <p class="text-[11px] text-slate-500">Ask ViralCopilot to "Viết kịch bản" or click 1-Click Generate.</p>
+        </div>
+        <div id="studio-body" class="hidden space-y-4">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+
+      <!-- Studio Export Action Footer -->
+      <div class="p-3 border-t border-white/10 bg-black/20 flex items-center space-x-2 text-xs">
+        <button id="copy-script-markdown-btn" class="flex-1 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-200 font-medium text-center border border-white/10 transition-all cursor-pointer flex items-center justify-center space-x-1.5">
+          <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+          <span>Copy Markdown</span>
+        </button>
+        <button id="download-script-json-btn" class="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-200 font-medium text-center border border-white/10 transition-all cursor-pointer flex items-center justify-center space-x-1.5">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-6 right-6 space-y-2 z-50 pointer-events-none"></div>
+
+  <!-- App Client Logic -->
+  <script src="/static/app.js"></script>
+  <script>
+    // Initialize Lucide Icons after DOM load
+    document.addEventListener("DOMContentLoaded", () => {
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
