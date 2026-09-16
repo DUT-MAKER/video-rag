@@ -10,6 +10,7 @@ interface AppShellProps {
 
 const navItems = [
   { href: "/dashboard", label: "Studio" },
+  { href: "/dashboard/videos", label: "Quản Lý Video" },
   { href: "/dashboard/generator", label: "1-Click Generator" },
   { href: "/dashboard/benchmarks", label: "Kho Video Mẫu" },
   { href: "/dashboard/ingest", label: "Nạp Dữ Liệu" },

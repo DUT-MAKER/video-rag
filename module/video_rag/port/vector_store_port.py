@@ -39,3 +39,19 @@ class IVectorStorePort(Protocol):
     async def count(self) -> int:
         """Return total count of indexed vectors in the store."""
         ...
+
+    async def list_all(
+        self,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> tuple[list[dict[str, Any]], int]:
+        """Retrieve paginated list of all indexed video records (id, metadata, document) and total count."""
+        ...
+
+    async def get_by_id(self, video_id: str) -> dict[str, Any] | None:
+        """Retrieve a single video record by ID (id, metadata, document) without vector embedding."""
+        ...
+
+    async def delete_by_id(self, video_id: str) -> bool:
+        """Delete an indexed record by its ID."""
+        ...
