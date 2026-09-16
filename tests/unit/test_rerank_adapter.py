@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
+from module.video_rag.domain.exceptions import RerankError
 from module.video_rag.infra.rerank.dut_ai_rerank_adapter import DutAiRerankAdapter
 
 
@@ -14,7 +15,6 @@ async def test_rerank_success() -> None:
     adapter = DutAiRerankAdapter(
         api_base_url="https://textembedding.dutai.io.vn",
         api_key="dutaiclb",
-        fallback_mode=False,
     )
 
     mock_response_data = [
@@ -78,30 +78,34 @@ async def test_rerank_empty_documents() -> None:
 
 
 @pytest.mark.asyncio
-async def test_rerank_fallback_mode_on_error() -> None:
-    """Test graceful fallback ordering when endpoint is unavailable."""
-    adapter = DutAiRerankAdapter(fallback_mode=True)
+async def test_rerank_raises_on_http_error() -> None:
+    """Test that RerankError is raised on HTTP non-200 response without fallback."""
+    adapter = DutAiRerankAdapter()
 
-    with patch("httpx.AsyncClient.post", side_effect=httpx.ConnectError("Connection refused")):
-        results = await adapter.rerank(
-            query="test query",
-            documents=["Doc A", "Doc B", "Doc C"],
-            top_n=2,
-        )
-        assert len(results) == 2
-        assert results[0].text == "Doc A"
-        assert results[0].score > results[1].score
+    mock_response = MagicMock(spec=httpx.Response)
+    mock_response.status_code = 502
+    mock_response.text = "Bad Gateway"
 
-
-@pytest.mark.asyncio
-async def test_rerank_raises_when_fallback_disabled() -> None:
-    """Test exception propagation when fallback_mode is False."""
-    adapter = DutAiRerankAdapter(fallback_mode=False)
-
-    with patch("httpx.AsyncClient.post", side_effect=httpx.ConnectError("Connection refused")):
-        with pytest.raises(httpx.ConnectError):
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_response):
+        with pytest.raises(RerankError) as exc_info:
             await adapter.rerank(
                 query="test query",
                 documents=["Doc A", "Doc B"],
                 top_n=2,
             )
+        assert "HTTP 502" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_rerank_raises_on_connection_failure() -> None:
+    """Test that RerankError is raised on network failure without fallback."""
+    adapter = DutAiRerankAdapter()
+
+    with patch("httpx.AsyncClient.post", side_effect=httpx.ConnectError("Connection refused")):
+        with pytest.raises(RerankError) as exc_info:
+            await adapter.rerank(
+                query="test query",
+                documents=["Doc A", "Doc B"],
+                top_n=2,
+            )
+        assert "Failed to call DUT AI Rerank service" in str(exc_info.value)

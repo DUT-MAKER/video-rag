@@ -32,3 +32,15 @@ class SessionNotFoundError(DomainError):
     """Error when requested chat session does not exist."""
 
     pass
+
+
+class EmbeddingError(DomainError):
+    """Error occurred during text embedding generation."""
+
+    pass
+
+
+class RerankError(DomainError):
+    """Error occurred during document reranking."""
+
+    pass

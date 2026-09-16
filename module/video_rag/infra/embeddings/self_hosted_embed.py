@@ -1,12 +1,13 @@
 """SelfHostedEmbeddingAdapter implementation."""
 
-import hashlib
-import math
-import re
+import logging
 
 import httpx
 
+from module.video_rag.domain.exceptions import EmbeddingError
 from module.video_rag.port.embedding_port import IEmbeddingPort
+
+logger = logging.getLogger(__name__)
 
 
 class SelfHostedEmbeddingAdapter(IEmbeddingPort):
@@ -19,32 +20,12 @@ class SelfHostedEmbeddingAdapter(IEmbeddingPort):
         model_name: str = "default-embed",
         dimension: int = 384,
         timeout: float = 30.0,
-        fallback_mode: bool = True,
     ) -> None:
         self._api_base_url = api_base_url.rstrip("/")
         self._api_key = api_key
         self._model_name = model_name
         self._dimension = dimension
         self._timeout = timeout
-        self._fallback_mode = fallback_mode
-
-    def _generate_fallback_vector(self, text: str) -> list[float]:
-        """Generate deterministic normalized embedding vector based on token hashing."""
-        vec = [0.0] * self._dimension
-        tokens = re.findall(r"\w+", text.lower())
-        if not tokens:
-            return vec
-
-        for token in tokens:
-            h = int(hashlib.md5(token.encode("utf-8")).hexdigest(), 16)
-            idx = h % self._dimension
-            sign = 1.0 if (h >> 8) % 2 == 0 else -1.0
-            vec[idx] += sign
-
-        norm = math.sqrt(sum(x * x for x in vec))
-        if norm > 0:
-            vec = [x / norm for x in vec]
-        return vec
 
     async def get_embedding(self, text: str) -> list[float]:
         """Compute embedding vector for a single text."""
@@ -57,14 +38,15 @@ class SelfHostedEmbeddingAdapter(IEmbeddingPort):
     async def embed_text(self, text: str) -> list[float]:
         """Generate vector embedding for a single text."""
         batch_result = await self.embed_batch([text])
-        return batch_result[0] if batch_result else [0.0] * self._dimension
+        if not batch_result:
+            raise EmbeddingError(f"Embedding API returned empty result for text: '{text[:50]}...'")
+        return batch_result[0]
 
     async def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """Generate vector embeddings for a batch of texts."""
         if not texts:
             return []
 
-        # Try calling real embedding API endpoint
         try:
             headers = {"Content-Type": "application/json"}
             if self._api_key:
@@ -85,9 +67,13 @@ class SelfHostedEmbeddingAdapter(IEmbeddingPort):
                     embeddings = [item["embedding"] for item in items if "embedding" in item]
                     if len(embeddings) == len(texts):
                         return embeddings
-        except Exception:
-            if not self._fallback_mode:
-                raise
+                    raise EmbeddingError(f"Expected {len(texts)} embeddings, but received {len(embeddings)}.")
 
-        # Fallback mode
-        return [self._generate_fallback_vector(t) for t in texts]
+                error_msg = f"Embedding service returned HTTP {response.status_code}: {response.text}"
+                logger.error(error_msg)
+                raise EmbeddingError(error_msg)
+        except Exception as exc:
+            if isinstance(exc, EmbeddingError):
+                raise
+            logger.error(f"Failed to generate embeddings: {exc}")
+            raise EmbeddingError(f"Failed to generate embeddings from {self._api_base_url}: {exc}") from exc

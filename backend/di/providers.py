@@ -117,7 +117,6 @@ class VideoRagModuleProvider(Provider):
             api_key=embedding_settings.api_key,
             model_name=embedding_settings.model_name,
             dimension=embedding_settings.dimension,
-            fallback_mode=embedding_settings.use_local_fallback,
         )
 
     @provide
@@ -128,7 +127,6 @@ class VideoRagModuleProvider(Provider):
             model_name=llm_settings.model_name,
             temperature=llm_settings.temperature,
             max_tokens=llm_settings.max_tokens,
-            fallback_mode=llm_settings.use_local_fallback,
         )
 
     @provide
@@ -143,7 +141,6 @@ class VideoRagModuleProvider(Provider):
             engine=async_engine,
             table_name=vector_store_settings.table_name,
             dimension=embedding_settings.dimension,
-            fallback_mode=vector_store_settings.use_local_fallback,
         )
 
     @provide
@@ -157,7 +154,6 @@ class VideoRagModuleProvider(Provider):
             api_key=rerank_settings.api_key,
             model_name=rerank_settings.model_name,
             timeout=rerank_settings.timeout,
-            fallback_mode=rerank_settings.use_local_fallback,
         )
 
     @provide(scope=Scope.REQUEST)

@@ -95,6 +95,12 @@ class FakeLLMPort(ILLMPort):
 
         return _generator()
 
+    async def classify_intent(self, message: str) -> ChatIntent:
+        lower = message.lower()
+        if any(k in lower for k in ["kịch bản", "hook", "cảnh", "video", "script"]):
+            return ChatIntent.GENERATE_SCRIPT
+        return ChatIntent.GENERAL_CHAT
+
 
 class FakeEmbeddingPort(IEmbeddingPort):
     """Fake embedding port."""
@@ -155,10 +161,11 @@ async def test_chat_use_case_turn_execution_and_intent() -> None:
         session_store_port=session_store,
     )
 
+    # Turn with generate script intent -> triggers RAG
     result = await use_case.execute_turn(user_message="Gợi ý hook cho video về thói quen dậy sớm")
     assert result.session_id != ""
     assert result.reply == "Here is your viral hook."
-    assert result.intent == ChatIntent.BRAINSTORM_HOOKS
+    assert result.intent == ChatIntent.GENERATE_SCRIPT
     assert len(result.referenced_patterns) == 1
     assert result.referenced_patterns[0].matched_hook == "Proven viral hook candidate 1"
 
@@ -168,6 +175,11 @@ async def test_chat_use_case_turn_execution_and_intent() -> None:
     assert len(saved_session.messages) == 2  # 1 user + 1 assistant
     assert saved_session.messages[0].content == "Gợi ý hook cho video về thói quen dậy sớm"
     assert saved_session.messages[1].content == "Here is your viral hook."
+
+    # Turn with general chat intent -> does not trigger RAG
+    res_general = await use_case.execute_turn(user_message="Xin chào, bạn khỏe không?")
+    assert res_general.intent == ChatIntent.GENERAL_CHAT
+    assert len(res_general.referenced_patterns) == 0
 
 
 @pytest.mark.asyncio
@@ -184,6 +196,7 @@ async def test_chat_use_case_multi_turn_continuation() -> None:
     # Turn 1
     res1 = await use_case.execute_turn(user_message="Viết kịch bản video AI")
     session_id = res1.session_id
+    assert res1.intent == ChatIntent.GENERATE_SCRIPT
 
     # Turn 2 with existing session_id
     res2 = await use_case.execute_turn(
@@ -191,7 +204,7 @@ async def test_chat_use_case_multi_turn_continuation() -> None:
         session_id=session_id,
     )
     assert res2.session_id == session_id
-    assert res2.intent == ChatIntent.REFINE_SCENE
+    assert res2.intent == ChatIntent.GENERATE_SCRIPT
 
     # Verify 4 messages accumulated
     saved_session = await session_store.get_session(session_id)

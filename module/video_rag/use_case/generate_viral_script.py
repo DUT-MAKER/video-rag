@@ -53,16 +53,15 @@ class GenerateViralScriptUseCase:
         if duration_seconds < 15 or duration_seconds > 180:
             raise DomainValidationError("Video duration must be between 15 and 180 seconds.")
 
-        # 1. Compose search query and generate embedding
-        search_query = f"Topic: {clean_topic}. Target audience: {target_audience}"
-        if hasattr(self._embed, "embed_text"):
-            query_vector = await self._embed.embed_text(search_query)
-        else:
-            query_vector = await self._embed.get_embedding(search_query)
-
-        # 2. Retrieve benchmark patterns from vector store (Stage 1: Vector Search)
+        # 1. Retrieve benchmark patterns from vector store (Stage 1: Vector Search)
         reference_contexts: list[SimilarVideoContext] = []
         try:
+            search_query = f"Topic: {clean_topic}. Target audience: {target_audience}"
+            if hasattr(self._embed, "embed_text"):
+                query_vector = await self._embed.embed_text(search_query)
+            else:
+                query_vector = await self._embed.get_embedding(search_query)
+
             fetch_k = max(top_k_patterns, self._candidate_k) if self._rerank else top_k_patterns
             candidates = await self._vector_store.search(
                 query_vector=query_vector,

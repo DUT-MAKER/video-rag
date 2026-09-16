@@ -1,6 +1,7 @@
 """ChatWithViralAssistantUseCase implementation."""
 
 import json
+import logging
 import time
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
@@ -19,14 +20,17 @@ from module.video_rag.port.embedding_port import IEmbeddingPort
 from module.video_rag.port.llm_port import ILLMPort
 from module.video_rag.port.rerank_port import IRerankPort
 from module.video_rag.port.vector_store_port import IVectorStorePort
+from module.video_rag.use_case.tiered_intent_classifier import TieredIntentClassifier
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
 class ChatStreamChunk:
-    """Represents a streaming chunk event emitted during generation."""
+    """Single token chunk yielded during real-time streaming."""
 
     session_id: str
-    token: str = ""
+    token: str
     is_first: bool = False
     is_done: bool = False
     intent: ChatIntent = ChatIntent.GENERAL_CHAT
@@ -35,7 +39,7 @@ class ChatStreamChunk:
 
 @dataclass
 class ChatTurnResult:
-    """Represents the complete result of a conversational chat turn."""
+    """Non-streaming result of a completed chat turn."""
 
     session_id: str
     reply: str
@@ -46,9 +50,10 @@ class ChatTurnResult:
 
 
 class ChatWithViralAssistantUseCase:
-    """Orchestrates multi-turn conversational AI with session memory and on-demand RAG:
+    """Orchestrates conversational viral co-pilot interactions.
     1. Loads or initializes the active ChatSession from IChatSessionStorePort.
-    2. Analyzes user intent to determine whether viral benchmark retrieval is needed.
+    2. Analyzes user intent using a 3-tier cascade (Rule-based -> Semantic Embedding -> LLM)
+       to determine whether viral benchmark retrieval is needed.
     3. Retrieves top relevant viral patterns via IVectorStorePort when applicable.
     4. Appends user message and streams assistant response via ILLMPort.
     5. Saves updated conversation turn and referenced benchmark patterns.
@@ -62,6 +67,7 @@ class ChatWithViralAssistantUseCase:
         session_store_port: IChatSessionStorePort,
         rerank_port: IRerankPort | None = None,
         candidate_k: int = 15,
+        intent_classifier: TieredIntentClassifier | None = None,
     ) -> None:
         self._llm = llm_port
         self._embed = embedding_port
@@ -69,73 +75,20 @@ class ChatWithViralAssistantUseCase:
         self._session_store = session_store_port
         self._rerank = rerank_port
         self._candidate_k = candidate_k
+        self._classifier = intent_classifier or TieredIntentClassifier(
+            embedding_port=self._embed,
+            llm_port=self._llm,
+        )
 
-    def _detect_intent(self, message: str) -> ChatIntent:
-        """Classify user intent based on query semantics."""
-        lower = message.lower()
-        if any(k in lower for k in ["hook", "tiêu đề", "mở đầu", "thu hút", "giật gân", "title", "headline"]):
-            return ChatIntent.BRAINSTORM_HOOKS
-        if any(
-            k in lower
-            for k in ["sửa cảnh", "cảnh", "chỉnh sửa", "refine", "scene", "đoạn giữa", "đoạn kết", "phân cảnh"]
-        ):
-            return ChatIntent.REFINE_SCENE
-        if any(
-            k in lower
-            for k in [
-                "prompt",
-                "hình ảnh",
-                "bức ảnh",
-                "tấm ảnh",
-                "flux",
-                "midjourney",
-                "minio",
-                "visual",
-                "art",
-                "image prompt",
-            ]
-        ):
-            return ChatIntent.EXPORT_PROMPTS
-        if any(
-            k in lower
-            for k in [
-                "kịch bản",
-                "script",
-                "viết",
-                "draft",
-                "lên bài",
-                "quay",
-                "video",
-                "tiktok",
-                "reels",
-                "shorts",
-            ]
-        ):
-            return ChatIntent.DRAFT_SCRIPT
-        return ChatIntent.GENERAL_CHAT
+    async def _detect_intent(self, message: str) -> ChatIntent:
+        """Classify user intent using the 3-tier cascade."""
+        intent, tier_name = await self._classifier.classify(message)
+        logger.info("Classified intent: %s via tier: %s", intent, tier_name)
+        return intent
 
     def _should_trigger_rag(self, message: str, intent: ChatIntent) -> bool:
         """Determine whether RAG benchmark search should be triggered."""
-        if intent != ChatIntent.GENERAL_CHAT:
-            return True
-        lower = message.lower().strip()
-        greetings = {"hi", "hello", "alo", "chào", "xin chào", "hey", "cảm ơn", "thank you", "thanks"}
-        if lower in greetings:
-            return False
-        rag_keywords = [
-            "viral",
-            "gợi ý",
-            "mẫu",
-            "ví dụ",
-            "benchmark",
-            "xu hướng",
-            "trending",
-            "pattern",
-            "làm sao",
-            "hướng dẫn",
-            "nội dung",
-        ]
-        return any(kw in lower for kw in rag_keywords)
+        return intent == ChatIntent.GENERATE_SCRIPT
 
     async def _resolve_session(self, session_id: str | None) -> ChatSession:
         """Fetch existing session or create a new session."""
@@ -197,7 +150,7 @@ class ChatWithViralAssistantUseCase:
             raise DomainValidationError("User message cannot be empty.")
 
         session = await self._resolve_session(session_id)
-        intent = self._detect_intent(clean_message)
+        intent = await self._detect_intent(clean_message)
 
         reference_contexts: list[SimilarVideoContext] = []
         referenced_patterns: list[ReferencedPattern] = []

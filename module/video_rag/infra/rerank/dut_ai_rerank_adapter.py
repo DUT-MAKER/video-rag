@@ -5,6 +5,7 @@ from typing import Any
 
 import httpx
 
+from module.video_rag.domain.exceptions import RerankError
 from module.video_rag.port.rerank_port import IRerankPort, RerankedDocument
 
 logger = logging.getLogger(__name__)
@@ -19,27 +20,13 @@ class DutAiRerankAdapter(IRerankPort):
         api_key: str | None = "dutaiclb",
         model_name: str = "BAAI/bge-reranker-v2-m3",
         timeout: float = 15.0,
-        fallback_mode: bool = True,
         max_batch_size: int = 32,
     ) -> None:
         self._api_base_url = api_base_url.rstrip("/")
         self._api_key = api_key
         self._model_name = model_name
         self._timeout = timeout
-        self._fallback_mode = fallback_mode
         self._max_batch_size = max_batch_size
-
-    def _fallback_ranking(self, documents: list[str], top_n: int) -> list[RerankedDocument]:
-        """Produce fallback ranking preserving original order with synthetic decreasing scores."""
-        selected_docs = documents[:top_n]
-        return [
-            RerankedDocument(
-                index=i,
-                score=1.0 / (i + 1),
-                text=doc,
-            )
-            for i, doc in enumerate(selected_docs)
-        ]
 
     async def rerank(
         self,
@@ -84,15 +71,13 @@ class DutAiRerankAdapter(IRerankPort):
                         ]
                         results.sort(key=lambda x: x.score, reverse=True)
                         return results[:top_n]
-                else:
-                    logger.warning(
-                        "DUT AI Rerank service returned HTTP %s: %s",
-                        response.status_code,
-                        response.text,
-                    )
-        except Exception as exc:
-            logger.warning("Failed to call DUT AI Rerank service (%s).", exc)
-            if not self._fallback_mode:
-                raise
+                    raise RerankError("Reranker response format invalid: expected JSON array.")
 
-        return self._fallback_ranking(documents, top_n)
+                error_msg = f"DUT AI Rerank service returned HTTP {response.status_code}: {response.text}"
+                logger.error(error_msg)
+                raise RerankError(error_msg)
+        except Exception as exc:
+            if isinstance(exc, RerankError):
+                raise
+            logger.error(f"Failed to call DUT AI Rerank service: {exc}")
+            raise RerankError(f"Failed to call DUT AI Rerank service ({exc}).") from exc

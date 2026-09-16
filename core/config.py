@@ -83,7 +83,6 @@ class LLMSettings(BaseSettings):
     model_name: str = Field(default="ggml-org/gemma-4-e4b-it-GGUF:Q4_0", validation_alias="LLM_MODEL_NAME")
     temperature: float = Field(default=0.7, validation_alias="LLM_TEMPERATURE")
     max_tokens: int = Field(default=2048, validation_alias="LLM_MAX_TOKENS")
-    use_local_fallback: bool = Field(default=True, validation_alias="USE_LOCAL_FALLBACK")
 
 
 class EmbeddingSettings(BaseSettings):
@@ -95,7 +94,6 @@ class EmbeddingSettings(BaseSettings):
     api_key: str = Field(default="dutaiclb", validation_alias="EMBEDDING_API_KEY")
     model_name: str = Field(default="BAAI/bge-m3", validation_alias="EMBEDDING_MODEL_NAME")
     dimension: int = Field(default=1024, validation_alias="EMBEDDING_DIMENSION")
-    use_local_fallback: bool = Field(default=True, validation_alias="USE_LOCAL_FALLBACK")
 
 
 class RerankSettings(BaseSettings):
@@ -110,7 +108,6 @@ class RerankSettings(BaseSettings):
     candidate_k: int = Field(default=15, validation_alias="RERANK_CANDIDATE_K")
     top_n: int = Field(default=3, validation_alias="RERANK_TOP_N")
     timeout: float = Field(default=15.0, validation_alias="RERANK_TIMEOUT")
-    use_local_fallback: bool = Field(default=True, validation_alias="RERANK_USE_FALLBACK")
 
 
 class VectorStoreSettings(BaseSettings):
@@ -120,7 +117,6 @@ class VectorStoreSettings(BaseSettings):
 
     table_name: str = Field(default="viral_video_embeddings", validation_alias="PGVECTOR_TABLE_NAME")
     store_type: str = Field(default="pgvector", validation_alias="VECTOR_STORE_TYPE")
-    use_local_fallback: bool = Field(default=True, validation_alias="USE_LOCAL_FALLBACK")
 
 
 # Cached Singleton Getters
