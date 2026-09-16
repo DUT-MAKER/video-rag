@@ -79,5 +79,6 @@ class DutAiRerankAdapter(IRerankPort):
         except Exception as exc:
             if isinstance(exc, RerankError):
                 raise
-            logger.error(f"Failed to call DUT AI Rerank service: {exc}")
-            raise RerankError(f"Failed to call DUT AI Rerank service ({exc}).") from exc
+            error_detail = f"{type(exc).__name__}: {exc}" if str(exc) else type(exc).__name__
+            logger.error(f"Failed to call DUT AI Rerank service: {error_detail}")
+            raise RerankError(f"Failed to call DUT AI Rerank service ({error_detail}).") from exc

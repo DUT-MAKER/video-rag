@@ -27,6 +27,72 @@ class IngestionResponseData(BaseModel):
     indexed_ids: list[str]
 
 
+class TranscriptSegmentResponseDTO(BaseModel):
+    """Timestamped segment with attributed speaker."""
+
+    start: float
+    end: float
+    text: str
+    speaker: str
+
+
+class VideoFileIngestionResponseData(BaseModel):
+    """Payload returned upon successful video file extraction and ingestion."""
+
+    total_indexed: int
+    caption: str
+    summary: str
+    hashtag: str
+    speaker_count: int
+    duration_seconds: float = 0.0
+    transcript: str = ""
+    transcript_with_speakers: str = ""
+    transcript_preview: str = ""
+    transcript_segments: list[TranscriptSegmentResponseDTO] = []
+    thumbnail_path: str
+    video_url: str
+
+
+class VideoListItemDTO(BaseModel):
+    """Summary representation of a video in list view."""
+
+    id: str
+    caption: str
+    hashtag: str
+    image_url: str
+    video_url: str
+    summary: str
+    hook_candidate: str
+    speaker_count: int = 1
+    duration_seconds: float = 0.0
+
+
+class VideoListResponseDTO(BaseModel):
+    """Paginated list of videos."""
+
+    items: list[VideoListItemDTO]
+    total: int
+    limit: int
+    offset: int
+
+
+class VideoDetailResponseDTO(BaseModel):
+    """Comprehensive video detail view without internal ID or vector embedding."""
+
+    caption: str
+    hashtag: str
+    image_url: str
+    video_url: str
+    summary: str
+    hook_candidate: str
+    transcript: str
+    transcript_with_speakers: str
+    speaker_count: int = 1
+    duration_seconds: float = 0.0
+    document: str = ""
+    extra_metadata: dict = {}
+
+
 class SearchPatternItem(BaseModel):
     """Matched benchmark pattern item from vector search."""
 

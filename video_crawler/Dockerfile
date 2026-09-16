@@ -9,13 +9,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
-COPY pyproject.toml ./
-RUN uv sync --no-cache --no-install-project --extra crawler \
-    && uv run playwright install --with-deps chromium
+COPY pyproject.toml uv.lock README.md ./
+RUN uv sync --locked --no-install-project --extra crawler
 
 COPY core ./core
 COPY module ./module
 COPY backend ./backend
 COPY video_crawler ./video_crawler
+RUN uv sync --locked --extra crawler \
+    && uv run --no-sync playwright install --with-deps chromium
 
-CMD ["uv", "run", "python", "-m", "video_crawler.worker"]
+CMD ["uv", "run", "--no-sync", "python", "-m", "video_crawler.worker"]

@@ -38,11 +38,17 @@ class TestClientProvider(Provider):
     @provide
     def get_s3_client(self) -> IS3Client:
         class MockS3Client:
+            def ensure_bucket_exists(self, bucket: str) -> None:
+                pass
+
             def upload_fileobj(self, file_obj, bucket, key):
                 pass
 
             def upload_bytes(self, bucket, key, data, content_type="application/octet-stream"):
                 pass
+
+            def upload_file(self, file_path, bucket, key, content_type=None):
+                return f"http://mock-s3/{bucket}/{key}"
 
             def get_object_url(self, bucket, key):
                 return f"http://mock-s3/{bucket}/{key}"

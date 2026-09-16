@@ -27,7 +27,7 @@ class AppSettings(BaseSettings):
     host: str = Field(default="0.0.0.0", validation_alias="API_HOST")
     port: int = Field(default=8000, validation_alias="API_PORT")
     cors_origins: str = Field(
-        default="http://localhost:3000,http://127.0.0.1:3000",
+        default="http://localhost:3000,http://127.0.0.1:3000,http://localhost:3002,http://127.0.0.1:3002",
         validation_alias="CORS_ORIGINS",
     )
 
@@ -66,11 +66,21 @@ class S3Settings(BaseSettings):
 
     model_config = _SETTINGS_CONFIG
 
-    endpoint: str = Field(default="", validation_alias="S3_ENDPOINT")
-    secure: bool = Field(default=False, validation_alias="S3_SECURE")
+    endpoint: str = Field(default="dutmakers3.dutai.io.vn", validation_alias="S3_ENDPOINT")
+    secure: bool = Field(default=True, validation_alias="S3_SECURE")
     access_key: str = Field(default="", validation_alias="S3_ACCESS_KEY")
     secret_key: str = Field(default="", validation_alias="S3_SECRET_KEY")
-    bucket_name: str = Field(default="boilerplate-uploads", validation_alias="S3_BUCKET_NAME")
+    bucket_name: str = Field(default="video-rag", validation_alias="S3_BUCKET_NAME")
+
+    @property
+    def clean_endpoint(self) -> str:
+        """Strip protocol if present in endpoint."""
+        ep = self.endpoint.strip()
+        if ep.startswith("https://"):
+            return ep[len("https://"):].rstrip("/")
+        if ep.startswith("http://"):
+            return ep[len("http://"):].rstrip("/")
+        return ep.rstrip("/")
 
 
 class LLMSettings(BaseSettings):
@@ -119,6 +129,22 @@ class VectorStoreSettings(BaseSettings):
     store_type: str = Field(default="pgvector", validation_alias="VECTOR_STORE_TYPE")
 
 
+class TranscriberSettings(BaseSettings):
+    """Speech-to-text and speaker diarization configuration."""
+
+    model_config = _SETTINGS_CONFIG
+
+    whisper_model: str = Field(default="large-v3-turbo", validation_alias="WHISPER_MODEL")
+    whisper_device: str = Field(default="cuda", validation_alias="WHISPER_DEVICE")
+    whisper_compute_type: str = Field(default="float16", validation_alias="WHISPER_COMPUTE_TYPE")
+    whisper_batch_size: int = Field(default=16, validation_alias="WHISPER_BATCH_SIZE")
+    hf_token: str = Field(default="", validation_alias="HF_TOKEN")
+    default_language: str = Field(default="vi", validation_alias="STT_DEFAULT_LANGUAGE")
+    enable_diarization: bool = Field(default=True, validation_alias="ENABLE_DIARIZATION")
+    diarization_device: str = Field(default="cpu", validation_alias="DIARIZATION_DEVICE")
+    bento_stt_url: str = Field(default="http://localhost:3001", validation_alias="BENTO_STT_URL")
+
+
 # Cached Singleton Getters
 @lru_cache
 def get_app_settings() -> AppSettings:
@@ -160,6 +186,11 @@ def get_vector_store_settings() -> VectorStoreSettings:
     return VectorStoreSettings()
 
 
+@lru_cache
+def get_transcriber_settings() -> TranscriberSettings:
+    return TranscriberSettings()
+
+
 # Module-level instances for direct imports
 app_settings = get_app_settings()
 db_settings = get_db_settings()
@@ -169,3 +200,4 @@ llm_settings = get_llm_settings()
 embedding_settings = get_embedding_settings()
 rerank_settings = get_rerank_settings()
 vector_store_settings = get_vector_store_settings()
+transcriber_settings = get_transcriber_settings()

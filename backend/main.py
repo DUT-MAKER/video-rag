@@ -8,10 +8,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from backend.di.dependency_health import validate_runtime_dependencies
 from backend.di.setup import setup_di
-from backend.presentation.api.v1.crawler import router as crawler_router
 from backend.presentation.api.exceptions import setup_exception_handlers
-from backend.presentation.api.v1.router import api_v1_router
 from core.config import app_settings
 
 
@@ -25,6 +24,13 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     """FastAPI Application Factory."""
+    # Keep all Dishka-dependent route/provider imports behind the metadata
+    # preflight; otherwise a broken dist-info directory fails during module
+    # import before the actionable diagnostic can run.
+    validate_runtime_dependencies()
+    from backend.presentation.api.v1.crawler import router as crawler_router
+    from backend.presentation.api.v1.router import api_v1_router
+
     app = FastAPI(
         title=app_settings.name,
         description=(
@@ -58,6 +64,11 @@ def create_app() -> FastAPI:
     # Mount API v1 Routes
     app.include_router(api_v1_router, prefix="/api/v1")
     app.include_router(crawler_router, prefix="/api/v1")
+
+    # Mount data storage & uploads for serving thumbnails and videos
+    data_path = Path(__file__).resolve().parent.parent / "data"
+    if data_path.exists():
+        app.mount("/data", StaticFiles(directory=str(data_path)), name="data_files")
 
     # Mount Frontend Static UI & Chat Webpage
     static_path = Path(__file__).resolve().parent / "static"

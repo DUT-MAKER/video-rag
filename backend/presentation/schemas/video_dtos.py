@@ -21,6 +21,28 @@ class IngestRequestDTO(BaseModel):
     )
 
 
+class IngestVideoFileRequestDTO(BaseModel):
+    """Request DTO for extracting metadata from a raw video file and ingesting it."""
+
+    video_path: str = Field(
+        ...,
+        description="Path to video file on server disk (e.g. data/samples/sample_video.mp4)",
+        examples=["data/samples/sample_video.mp4"],
+    )
+    caption: str = Field(
+        default="",
+        description="Pre-defined or initial caption for the video",
+    )
+    hashtag: str = Field(
+        default="",
+        description="Pre-defined hashtags (comma or space separated)",
+    )
+    language: str = Field(
+        default="vi",
+        description="Spoken language code for STT transcription (vi, en, etc.)",
+    )
+
+
 class SearchPatternsRequestDTO(BaseModel):
     """Request DTO for semantic similarity search over benchmark patterns."""
 

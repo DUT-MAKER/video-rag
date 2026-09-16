@@ -1,0 +1,10 @@
+.git
+.venv
+.env
+.pytest_cache
+.pytest-temp*
+**/__pycache__
+**/*.pyc
+data/
+web/node_modules/
+video_crawler/var/secrets/

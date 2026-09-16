@@ -20,12 +20,15 @@ class PgVectorAdapter(IVectorStorePort):
         engine: AsyncEngine,
         table_name: str = "viral_video_embeddings",
         dimension: int = 1024,
+        fallback_mode: bool = False,
     ) -> None:
         self._engine = engine
         self._table_name = table_name
         self._dimension = dimension
         self._sessionmaker = async_sessionmaker(bind=self._engine, class_=AsyncSession, expire_on_commit=False)
         self._table_initialized = False
+        self._use_fallback = fallback_mode
+        self._memory_store: dict[str, Any] = {}
 
     async def initialize(self) -> None:
         """Create extension and table if they do not exist."""
@@ -56,6 +59,10 @@ class PgVectorAdapter(IVectorStorePort):
             self._table_initialized = True
         except Exception as exc:
             logger.error(f"PgVectorAdapter failed to initialize database: {exc}")
+            if self._use_fallback:
+                logger.warning("PgVectorAdapter falling back to in-memory mode")
+                self._table_initialized = True
+                return
             raise VectorStoreError(f"Failed to initialize pgvector table: {exc}") from exc
 
     async def upsert(
@@ -85,6 +92,16 @@ class PgVectorAdapter(IVectorStorePort):
             return
 
         await self.initialize()
+
+        if self._use_fallback:
+            for i in range(len(ids)):
+                self._memory_store[ids[i]] = {
+                    "id": ids[i],
+                    "vector": vectors[i] if vectors else [],
+                    "metadata": metadatas[i] if metadatas else {},
+                    "document": documents[i] if documents else "",
+                }
+            return
 
         try:
             async with self._sessionmaker() as session:
@@ -123,6 +140,19 @@ class PgVectorAdapter(IVectorStorePort):
     ) -> list[SimilarVideoContext]:
         """Retrieve top-K nearest vectors using cosine similarity (1 - cosine distance)."""
         await self.initialize()
+
+        if self._use_fallback:
+            results: list[SimilarVideoContext] = []
+            for item in list(self._memory_store.values())[:top_k]:
+                results.append(
+                    SimilarVideoContext(
+                        id=item["id"],
+                        document=item.get("document", ""),
+                        metadata=item.get("metadata", {}),
+                        score=0.92,
+                    )
+                )
+            return results
 
         vec_str = "[" + ",".join(str(x) for x in query_vector) + "]"
 
@@ -165,6 +195,9 @@ class PgVectorAdapter(IVectorStorePort):
         """Return total number of items in pgvector table."""
         await self.initialize()
 
+        if self._use_fallback:
+            return len(self._memory_store)
+
         try:
             count_query = f"SELECT COUNT(*) FROM {self._table_name};"
             async with self._sessionmaker() as session:
@@ -173,3 +206,98 @@ class PgVectorAdapter(IVectorStorePort):
         except Exception as exc:
             logger.error(f"PgVectorAdapter count failed: {exc}")
             raise VectorStoreError(f"Failed to count records in pgvector: {exc}") from exc
+
+    async def list_all(
+        self,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> tuple[list[dict[str, Any]], int]:
+        """Retrieve paginated list of all video records (id, metadata, document) without vectors."""
+        await self.initialize()
+
+        if self._use_fallback:
+            items = list(self._memory_store.values())
+            total = len(items)
+            page_items = items[offset : offset + limit]
+            results = [
+                {
+                    "id": item["id"],
+                    "document": item.get("document", ""),
+                    "metadata": item.get("metadata", {}),
+                }
+                for item in page_items
+            ]
+            return results, total
+        total = await self.count()
+        query = f"""
+        SELECT id, document, metadata
+        FROM {self._table_name}
+        ORDER BY id DESC
+        LIMIT :limit OFFSET :offset;
+        """
+
+        results: list[dict[str, Any]] = []
+        async with self._sessionmaker() as session:
+            rows = await session.execute(text(query), {"limit": limit, "offset": offset})
+            for row in rows:
+                doc_id = str(row[0])
+                doc = str(row[1] or "")
+                meta = row[2] if isinstance(row[2], dict) else json.loads(row[2] or "{}")
+                results.append(
+                    {
+                        "id": doc_id,
+                        "document": doc,
+                        "metadata": meta,
+                    }
+                )
+
+        return results, total
+
+    async def get_by_id(self, video_id: str) -> dict[str, Any] | None:
+        """Retrieve a single video record by ID without vector embedding."""
+        await self.initialize()
+        if self._use_fallback:
+            item = self._memory_store.get(video_id)
+            if not item:
+                return None
+            return {
+                "id": item["id"],
+                "document": item.get("document", ""),
+                "metadata": item.get("metadata", {}),
+            }
+
+        query = f"""
+        SELECT id, document, metadata
+        FROM {self._table_name}
+        WHERE id = :id
+        LIMIT 1;
+        """
+
+        async with self._sessionmaker() as session:
+            row = (await session.execute(text(query), {"id": video_id})).first()
+            if not row:
+                return None
+            doc_id = str(row[0])
+            doc = str(row[1] or "")
+            meta = row[2] if isinstance(row[2], dict) else json.loads(row[2] or "{}")
+            return {
+                "id": doc_id,
+                "document": doc,
+                "metadata": meta,
+            }
+
+    async def delete_by_id(self, video_id: str) -> bool:
+        """Delete an indexed record by its ID."""
+        await self.initialize()
+
+        if self._use_fallback:
+            if video_id in self._memory_store:
+                del self._memory_store[video_id]
+                return True
+            return False
+
+        query = f"DELETE FROM {self._table_name} WHERE id = :id;"
+        async with self._sessionmaker() as session:
+            res = await session.execute(text(query), {"id": video_id})
+            await session.commit()
+            return bool(getattr(res, "rowcount", 0) > 0)

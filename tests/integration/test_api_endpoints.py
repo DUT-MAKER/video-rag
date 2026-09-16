@@ -5,7 +5,10 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from backend.main import app
-from module.video_rag.domain.entities.reference_pattern import ReferencedPattern
+from module.video_rag.domain.entities.reference_pattern import (
+    ReferencedPattern,
+    SimilarVideoContext,
+)
 from module.video_rag.domain.entities.viral_script import (
     CallToAction,
     Hook,
@@ -19,6 +22,7 @@ from module.video_rag.infra.embeddings.self_hosted_embed import (
 )
 from module.video_rag.infra.llm.self_hosted_llm import SelfHostedLLMAdapter
 from module.video_rag.infra.rerank.dut_ai_rerank_adapter import DutAiRerankAdapter
+from module.video_rag.infra.vector_store.pgvector_adapter import PgVectorAdapter
 from module.video_rag.port.rerank_port import RerankedDocument
 
 client = TestClient(app)
@@ -43,11 +47,16 @@ def test_health_check_endpoint() -> None:
     assert "total_indexed_patterns" in json_data["data"]
 
 
-def test_full_pipeline_ingest_search_generate() -> None:
-    """Verify full end-to-end flow:
-    1. Ingest sample knowledge file data/samples/sample_viral_videos.json.
-    2. Search benchmark patterns by query.
-    3. RAG-generate 45s viral TikTok script with storyboard and AI prompts.
+def test_ingest_endpoint_removed() -> None:
+    """Verify POST /api/v1/ingest has been removed and returns 404."""
+    res = client.post("/api/v1/ingest", json={"file_path": "test.json"})
+    assert res.status_code == 404
+
+
+def test_full_pipeline_search_generate() -> None:
+    """Verify search and RAG generate pipeline:
+    1. Search benchmark patterns by query.
+    2. RAG-generate 45s viral TikTok script with storyboard and AI prompts.
     """
 
     async def mock_embed_batch(texts: list[str]) -> list[list[float]]:
@@ -113,29 +122,30 @@ def test_full_pipeline_ingest_search_generate() -> None:
             suggested_hashtags=["#discipline", "#habits"],
         )
 
-    async def mock_rerank(
-        query: str, documents: list[str], top_n: int = 3
-    ) -> list[RerankedDocument]:
+    async def mock_rerank(query: str, documents: list[str], top_n: int = 3) -> list[RerankedDocument]:
+        return [RerankedDocument(index=i, score=0.95 - (i * 0.1), text=doc) for i, doc in enumerate(documents[:top_n])]
+
+    async def mock_vector_search(self, query_vector: list[float], top_k: int = 5) -> list[SimilarVideoContext]:
         return [
-            RerankedDocument(index=i, score=0.95 - (i * 0.1), text=doc)
-            for i, doc in enumerate(documents[:top_n])
+            SimilarVideoContext(
+                id="p1",
+                document="Content about habit and 2-minute rule",
+                metadata={"caption": "Habit Loop", "hook_candidate": "2-min trick"},
+                score=0.92,
+            )
         ]
+
+    async def mock_initialize(self) -> None:
+        return None
 
     with (
         patch.object(SelfHostedEmbeddingAdapter, "embed_batch", side_effect=mock_embed_batch),
         patch.object(SelfHostedLLMAdapter, "generate_script", side_effect=mock_generate_script),
         patch.object(DutAiRerankAdapter, "rerank", side_effect=mock_rerank),
+        patch.object(PgVectorAdapter, "initialize", new=mock_initialize),
+        patch.object(PgVectorAdapter, "search", new=mock_vector_search),
     ):
-        # 1. Ingest
-        ingest_payload = {"file_path": "data/samples/sample_viral_videos.json"}
-
-        ingest_res = client.post("/api/v1/ingest", json=ingest_payload)
-        assert ingest_res.status_code == 200
-        ingest_data = ingest_res.json()
-        assert ingest_data["success"] is True
-        assert ingest_data["data"]["total_indexed"] == 5
-
-        # 2. Search Patterns
+        # 1. Search Patterns
         search_payload = {"query": "discipline habit", "top_k": 3}
         search_res = client.post("/api/v1/search-patterns", json=search_payload)
         assert search_res.status_code == 200
@@ -143,7 +153,7 @@ def test_full_pipeline_ingest_search_generate() -> None:
         assert search_data["success"] is True
         assert len(search_data["data"]) >= 1
 
-        # 3. Generate Script
+        # 2. Generate Script
         gen_payload = {
             "topic": "How to apply the 2-minute rule to beat procrastination",
             "target_audience": "Working professionals and students",
@@ -172,4 +182,5 @@ def test_full_pipeline_ingest_search_generate() -> None:
         # Verify CTA and Benchmark References
         assert script["call_to_action"]["script"] != ""
         assert len(script["references"]) >= 1
-        assert "https://minio" in script["references"][0]["minio_video_url"]
+        ref_url = script["references"][0]["minio_video_url"]
+        assert "minio" in ref_url or "dutmakers3" in ref_url

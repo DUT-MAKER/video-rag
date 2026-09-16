@@ -28,7 +28,6 @@ def test_app_initialization():
     assert "/api/v1/auth/login" in routes
     assert "/api/v1/me" in routes
     assert "/api/v1/uploads" in routes
-    assert "/api/v1/ingest" in routes
     assert "/api/v1/search" in routes
     assert "/api/v1/generate" in routes
     assert "/api/v1/chat" in routes

@@ -37,3 +37,18 @@ class ILLMPort(Protocol):
     async def classify_intent(self, message: str) -> ChatIntent:
         """Classify user query intent into ChatIntent using LLM."""
         ...
+
+    async def enrich_video_metadata(
+        self,
+        transcript: str,
+        language: str = "vi",
+    ) -> dict[str, str]:
+        """Generate caption, summary, and hashtags from a speaker-labeled transcript.
+
+        The transcript includes speaker labels (e.g., SPEAKER_00, SPEAKER_01)
+        which should be used to understand dialogue flow.
+
+        Returns:
+            {"caption": "...", "summary": "...", "hashtag": "..."}
+        """
+        ...
