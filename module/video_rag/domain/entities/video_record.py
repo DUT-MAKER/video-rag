@@ -17,6 +17,10 @@ class RawVideoRecord:
     summary: str
     video_url: str
     id: str = ""
+    speaker_count: int = 1
+    duration_seconds: float = 0.0
+    transcript_with_speakers: str = ""
+    segments: list[dict[str, Any]] | None = None
 
     def __post_init__(self) -> None:
         if not self.id:
@@ -67,4 +71,9 @@ class RawVideoRecord:
             "summary": self.summary,
             "video_url": self.video_url,
             "hook_candidate": self.extract_hook(),
+            "transcript": self.transcript,
+            "transcript_with_speakers": self.transcript_with_speakers or self.transcript,
+            "speaker_count": self.speaker_count,
+            "duration_seconds": self.duration_seconds,
+            "segments": self.segments or [],
         }

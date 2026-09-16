@@ -103,6 +103,35 @@ export interface IngestionResponseData {
   indexed_ids: string[];
 }
 
+export interface TranscriptSegment {
+  start: number;
+  end: number;
+  text: string;
+  speaker: string;
+}
+
+export interface VideoFileIngestionResponseData {
+  total_indexed: number;
+  caption: string;
+  summary: string;
+  hashtag: string;
+  speaker_count: number;
+  duration_seconds: number;
+  transcript: string;
+  transcript_with_speakers: string;
+  transcript_preview: string;
+  transcript_segments: TranscriptSegment[];
+  thumbnail_path: string;
+  video_url: string;
+}
+
+export interface IngestVideoFilePayload {
+  file: File;
+  caption?: string;
+  hashtag?: string;
+  language?: string;
+}
+
 export interface GenerateScriptPayload {
   topic: string;
   target_audience?: string;
@@ -110,4 +139,38 @@ export interface GenerateScriptPayload {
   platform?: PlatformTarget;
   hook_style?: string;
   top_k_patterns?: number;
+}
+
+export interface VideoListItem {
+  id: string;
+  caption: string;
+  hashtag: string;
+  image_url: string;
+  video_url: string;
+  summary: string;
+  hook_candidate: string;
+  speaker_count: number;
+  duration_seconds: number;
+}
+
+export interface VideoListResponse {
+  items: VideoListItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface VideoDetail {
+  caption: string;
+  hashtag: string;
+  image_url: string;
+  video_url: string;
+  summary: string;
+  hook_candidate: string;
+  transcript: string;
+  transcript_with_speakers: string;
+  speaker_count: number;
+  duration_seconds: number;
+  document: string;
+  extra_metadata?: Record<string, any>;
 }

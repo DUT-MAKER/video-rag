@@ -1,60 +1,141 @@
 """Video RAG endpoints: Ingestion, Similarity Search, and Script Generation."""
 
 from dishka.integrations.fastapi import FromDishka, inject
-from fastapi import APIRouter, status
+from fastapi import APIRouter, File, Form, UploadFile, status
 
+from typing import Any
+import os
+import shutil
+import tempfile
+from pathlib import Path
 from backend.presentation.schemas.response_dtos import (
     CallToActionResponseDTO,
     HookResponseDTO,
-    IngestionResponseData,
     ReferencedPatternResponseDTO,
     SceneResponseDTO,
     SearchPatternItem,
     StandardResponse,
+    TranscriptSegmentResponseDTO,
+    VideoDetailResponseDTO,
+    VideoFileIngestionResponseData,
+    VideoListItemDTO,
+    VideoListResponseDTO,
     ViralScriptResponseDTO,
 )
 from backend.presentation.schemas.video_dtos import (
     GenerateScriptRequestDTO,
-    IngestRequestDTO,
     SearchPatternsRequestDTO,
 )
+from module.video_rag.domain.entities.extraction_result import VideoExtractionResult
 from module.video_rag.domain.exceptions import DomainValidationError
 from module.video_rag.use_case.generate_viral_script import GenerateViralScriptUseCase
-from module.video_rag.use_case.ingest_video_data import IngestVideoDataUseCase
+from module.video_rag.use_case.get_video_detail import GetVideoDetailUseCase
+from module.video_rag.use_case.ingest_video_data import (
+    IngestVideoDataUseCase,
+    VideoItemInput,
+)
+from module.video_rag.use_case.list_videos import ListVideosUseCase
 from module.video_rag.use_case.search_viral_patterns import SearchViralPatternsUseCase
+
+from loguru import logger
 
 router = APIRouter(tags=["Video RAG"])
 
 
 @router.post(
-    "/ingest",
-    response_model=StandardResponse[IngestionResponseData],
+    "/ingest-video",
+    response_model=StandardResponse[VideoFileIngestionResponseData],
     status_code=status.HTTP_200_OK,
-    summary="Ingest raw viral video knowledge records into Vector Store",
+    summary="Upload raw video file, extract metadata and ingest into Vector Store",
 )
 @inject
-async def ingest_video_data(
-    payload: IngestRequestDTO,
+async def ingest_video_from_file(
     use_case: FromDishka[IngestVideoDataUseCase],
-) -> StandardResponse[IngestionResponseData]:
-    """Ingests dataset records into vector store."""
-    if payload.records is not None:
-        result = await use_case.execute(source=payload.records)
-    elif payload.file_path is not None:
-        result = await use_case.execute(source=payload.file_path)
-    else:
-        raise DomainValidationError("Either 'file_path' or 'records' must be provided in request body.")
+    file: UploadFile = File(..., description="Video/Audio file to upload and ingest"),
+    caption: str = Form(default=""),
+    hashtag: str = Form(default=""),
+    language: str = Form(default="vi"),
+) -> StandardResponse[VideoFileIngestionResponseData]:
+    """Upload video/audio file directly, extract metadata (WhisperX STT,
+    Diarization, Vision, LLM) and index directly into Vector Store.
+    """
+    filename = file.filename or "video.mp4"
+    logger.info(f"🚀 [API] Nhận request ingest video: '{filename}', size: {file.size or 'unknown'} bytes, lang: '{language}'")
+
+    # Save uploaded file to temporary directory
+    upload_dir = Path("data/uploads")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    suffix = Path(filename).suffix or ".mp4"
+
+    temp_path = upload_dir / f"upload_{os.urandom(6).hex()}{suffix}"
+    logger.info(f"📥 [API] Lưu file tạm thời vào: {temp_path}")
+    with open(temp_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    file_size_mb = os.path.getsize(temp_path) / (1024 * 1024)
+    logger.info(f"✅ [API] Đã lưu file ({file_size_mb:.2f} MB). Bắt đầu gọi IngestVideoDataUseCase...")
+
+    item_input = VideoItemInput(
+        video_path=str(temp_path),
+        caption=caption,
+        hashtag=hashtag,
+        language=language,
+    )
+    try:
+        result = await use_case.execute(input_data=item_input)
+    except Exception as e:
+        logger.exception(f"❌ [API] Lỗi trong quá trình IngestVideoDataUseCase: {e}")
+        raise e
+
+    extraction = result.latest_extraction or VideoExtractionResult(
+        video_path=str(temp_path),
+        transcript="",
+        transcript_with_speakers="",
+    )
+    record = result.latest_record
+
+    segments_dto = [
+        TranscriptSegmentResponseDTO(
+            start=seg.start,
+            end=seg.end,
+            text=seg.text,
+            speaker=seg.speaker,
+        )
+        for seg in extraction.transcript_segments
+    ]
+
+    preview = (
+        extraction.transcript_with_speakers[:500]
+        if extraction.transcript_with_speakers
+        else extraction.transcript[:500]
+    )
+
+    logger.info(
+        f"🎉 [API] Ingest video thành công! Total indexed: {result.total_indexed}, "
+        f"Speakers: {extraction.speaker_count}, Duration: {extraction.duration_seconds:.1f}s"
+    )
 
     return StandardResponse(
         success=True,
-        message=f"Successfully processed and indexed {result.total_indexed} video patterns.",
-        data=IngestionResponseData(
-            total_processed=result.total_processed,
+        message=f"Successfully extracted metadata and indexed video (speakers: {extraction.speaker_count}).",
+        data=VideoFileIngestionResponseData(
             total_indexed=result.total_indexed,
-            extracted_hooks=result.extracted_hooks,
-            indexed_ids=result.indexed_ids,
+            caption=record.caption if record else extraction.caption,
+            summary=record.summary if record else extraction.summary,
+            hashtag=record.hashtag if record else extraction.hashtag,
+            speaker_count=extraction.speaker_count,
+            duration_seconds=extraction.duration_seconds,
+            transcript=extraction.transcript,
+            transcript_with_speakers=extraction.transcript_with_speakers,
+            transcript_preview=preview,
+            transcript_segments=segments_dto,
+            thumbnail_path=record.image_url if record else extraction.thumbnail_path,
+            video_url=record.video_url if record else str(temp_path),
         ),
     )
+
+
+
 
 
 @router.post(
@@ -170,4 +251,84 @@ async def generate_viral_script(
         success=True,
         message="Viral video script generated successfully.",
         data=data,
+    )
+
+
+@router.get(
+    "/videos",
+    response_model=StandardResponse[VideoListResponseDTO],
+    status_code=status.HTTP_200_OK,
+    summary="List all indexed viral video records",
+)
+@inject
+async def list_videos(
+    use_case: FromDishka[ListVideosUseCase],
+    limit: int = 50,
+    offset: int = 0,
+    search: str = "",
+) -> StandardResponse[VideoListResponseDTO]:
+    """Retrieve paginated list of all indexed videos."""
+    result = await use_case.execute(limit=limit, offset=offset, search_query=search)
+    return StandardResponse(
+        success=True,
+        message=f"Retrieved {len(result.items)} videos (total: {result.total}).",
+        data=VideoListResponseDTO(
+            items=[
+                VideoListItemDTO(
+                    id=item.id,
+                    caption=item.caption,
+                    hashtag=item.hashtag,
+                    image_url=item.image_url,
+                    video_url=item.video_url,
+                    summary=item.summary,
+                    hook_candidate=item.hook_candidate,
+                    speaker_count=item.speaker_count,
+                    duration_seconds=item.duration_seconds,
+                )
+                for item in result.items
+            ],
+            total=result.total,
+            limit=result.limit,
+            offset=result.offset,
+        ),
+    )
+
+
+@router.get(
+    "/videos/{video_id}",
+    response_model=StandardResponse[VideoDetailResponseDTO],
+    status_code=status.HTTP_200_OK,
+    summary="Get full details of an indexed video without id and vector embedding",
+)
+@inject
+async def get_video_detail(
+    video_id: str,
+    use_case: FromDishka[GetVideoDetailUseCase],
+) -> StandardResponse[VideoDetailResponseDTO]:
+    """Retrieve full video information excluding internal ID and embedding."""
+    detail = await use_case.execute(video_id=video_id)
+    if not detail:
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Video not found with id '{video_id}'",
+        )
+
+    return StandardResponse(
+        success=True,
+        message="Video details retrieved successfully.",
+        data=VideoDetailResponseDTO(
+            caption=detail.caption,
+            hashtag=detail.hashtag,
+            image_url=detail.image_url,
+            video_url=detail.video_url,
+            summary=detail.summary,
+            hook_candidate=detail.hook_candidate,
+            transcript=detail.transcript,
+            transcript_with_speakers=detail.transcript_with_speakers,
+            speaker_count=detail.speaker_count,
+            duration_seconds=detail.duration_seconds,
+            document=detail.document,
+            extra_metadata=detail.extra_metadata,
+        ),
     )
