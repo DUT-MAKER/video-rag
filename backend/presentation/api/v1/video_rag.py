@@ -6,7 +6,6 @@ from fastapi import APIRouter, status
 from backend.presentation.schemas.response_dtos import (
     CallToActionResponseDTO,
     HookResponseDTO,
-    IngestionResponseData,
     ReferencedPatternResponseDTO,
     SceneResponseDTO,
     SearchPatternItem,
@@ -15,46 +14,12 @@ from backend.presentation.schemas.response_dtos import (
 )
 from backend.presentation.schemas.video_dtos import (
     GenerateScriptRequestDTO,
-    IngestRequestDTO,
     SearchPatternsRequestDTO,
 )
-from module.video_rag.domain.exceptions import DomainValidationError
 from module.video_rag.use_case.generate_viral_script import GenerateViralScriptUseCase
-from module.video_rag.use_case.ingest_video_data import IngestVideoDataUseCase
 from module.video_rag.use_case.search_viral_patterns import SearchViralPatternsUseCase
 
 router = APIRouter(tags=["Video RAG"])
-
-
-@router.post(
-    "/ingest",
-    response_model=StandardResponse[IngestionResponseData],
-    status_code=status.HTTP_200_OK,
-    summary="Ingest raw viral video knowledge records into Vector Store",
-)
-@inject
-async def ingest_video_data(
-    payload: IngestRequestDTO,
-    use_case: FromDishka[IngestVideoDataUseCase],
-) -> StandardResponse[IngestionResponseData]:
-    """Ingests dataset records into vector store."""
-    if payload.records is not None:
-        result = await use_case.execute(source=payload.records)
-    elif payload.file_path is not None:
-        result = await use_case.execute(source=payload.file_path)
-    else:
-        raise DomainValidationError("Either 'file_path' or 'records' must be provided in request body.")
-
-    return StandardResponse(
-        success=True,
-        message=f"Successfully processed and indexed {result.total_indexed} video patterns.",
-        data=IngestionResponseData(
-            total_processed=result.total_processed,
-            total_indexed=result.total_indexed,
-            extracted_hooks=result.extracted_hooks,
-            indexed_ids=result.indexed_ids,
-        ),
-    )
 
 
 @router.post(

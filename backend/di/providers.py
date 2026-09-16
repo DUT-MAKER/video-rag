@@ -41,7 +41,6 @@ from module.video_rag.use_case.chat_with_viral_assistant import (
     ChatWithViralAssistantUseCase,
 )
 from module.video_rag.use_case.generate_viral_script import GenerateViralScriptUseCase
-from module.video_rag.use_case.ingest_video_data import IngestVideoDataUseCase
 from module.video_rag.use_case.search_viral_patterns import SearchViralPatternsUseCase
 
 
@@ -154,19 +153,6 @@ class VideoRagModuleProvider(Provider):
             api_key=rerank_settings.api_key,
             model_name=rerank_settings.model_name,
             timeout=rerank_settings.timeout,
-        )
-
-    @provide(scope=Scope.REQUEST)
-    def ingest_use_case(
-        self,
-        data_reader: IDataReaderPort,
-        embedding_port: IEmbeddingPort,
-        vector_store: IVectorStorePort,
-    ) -> IngestVideoDataUseCase:
-        return IngestVideoDataUseCase(
-            data_reader=data_reader,
-            embedding_port=embedding_port,
-            vector_store_port=vector_store,
         )
 
     @provide(scope=Scope.REQUEST)
