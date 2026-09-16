@@ -66,7 +66,7 @@ def tail_id(value: str) -> str:
     parsed = urlparse(value)
     if parsed.hostname and parsed.hostname.lower().endswith("youtu.be"):
         return parsed.path.strip("/").split("/", 1)[0]
-    match = re.search(r"/(?:video|videos|reel|posts)/([A-Za-z0-9_-]+)", value)
+    match = re.search(r"/(?:video|videos|shorts|reel|posts)/([A-Za-z0-9_-]+)", value)
     if match:
         return match.group(1)
     query = parse_qs(parsed.query)

@@ -17,7 +17,7 @@ class YouTubeCrawler(BrowserPlatformCrawler):
         if request.discovery_method is DiscoveryMethod.SOURCE_URL:
             return value
         if request.discovery_method is DiscoveryMethod.CREATOR:
-            return f"https://www.youtube.com/@{quote_plus(value.lstrip('@'))}/videos"
+            return f"https://www.youtube.com/@{quote_plus(value.lstrip('@'))}/shorts"
         return f"https://www.youtube.com/results?search_query={quote_plus(value)}"
 
     async def parse(self, page: Page) -> list[DiscoveredVideo]:
@@ -36,7 +36,8 @@ class YouTubeCrawler(BrowserPlatformCrawler):
                 )
             ]
         records: dict[str, DiscoveredVideo] = {}
-        for link in await page.locator("a#video-title[href*='/watch']").all():
+        selector = "a[href*='/shorts/'], a#video-title[href*='/watch']"
+        for link in await page.locator(selector).all():
             href = await link.get_attribute("href")
             if not href:
                 continue
@@ -45,8 +46,20 @@ class YouTubeCrawler(BrowserPlatformCrawler):
             video_id = tail_id(href)
             if not video_id:
                 continue
-            caption = (await link.get_attribute("title") or await link.inner_text()).strip()
-            thumbnail = await link.locator("xpath=ancestor::ytd-video-renderer[1]//img").first.get_attribute("src")
+            caption = (
+                await link.get_attribute("title")
+                or await link.get_attribute("aria-label")
+                or await link.inner_text()
+            ).strip()
+            container = link.locator(
+                "xpath=ancestor::*[self::ytd-video-renderer or self::ytd-rich-item-renderer][1]"
+            )
+            thumbnail_node = container.locator("img").first
+            thumbnail = (
+                await thumbnail_node.get_attribute("src")
+                if await thumbnail_node.count()
+                else None
+            )
             records[video_id] = DiscoveredVideo(
                 platform=self.platform,
                 platform_video_id=video_id,

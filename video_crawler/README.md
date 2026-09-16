@@ -6,6 +6,10 @@ video and thumbnail artifacts, stores them in the configured S3/MinIO bucket,
 and persists crawler metadata. It does not run transcription, LLM enrichment,
 embedding, or RAG ingestion.
 
+YouTube creator discovery targets the creator's Shorts feed. Direct
+`/shorts/{id}`, standard watch, and `youtu.be` URLs share the same normalized
+ID and database deduplication path.
+
 ## Safety
 
 - Use only operator-authorized sessions and public content.

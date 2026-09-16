@@ -6,7 +6,8 @@ from playwright.async_api import async_playwright
 
 from video_crawler.config import CrawlerSettings
 from video_crawler.crawlers import FacebookCrawler, TikTokCrawler, YouTubeCrawler
-from video_crawler.infrastructure.browser import BrowserContextFactory
+from video_crawler.domain import CrawlJobRequest, DiscoveryMethod, Platform
+from video_crawler.infrastructure.browser import BrowserContextFactory, tail_id
 
 FIXTURES = Path(__file__).with_name("fixtures")
 
@@ -68,3 +69,23 @@ def test_tiktok_hydration_parser_extracts_url_and_metrics() -> None:
         "comment_count": 12,
         "share_count": 7,
     }
+
+
+def test_tail_id_supports_youtube_shorts() -> None:
+    assert tail_id("https://www.youtube.com/shorts/abc123") == "abc123"
+
+
+def test_youtube_creator_discovery_targets_shorts_feed(tmp_path: Path) -> None:
+    settings = CrawlerSettings(
+        CRAWLER_SESSION_DIR=tmp_path / "sessions",
+        CRAWLER_WORK_DIR=tmp_path / "work",
+    )
+    request = CrawlJobRequest(
+        platforms=(Platform.YOUTUBE,),
+        discovery_method=DiscoveryMethod.CREATOR,
+        creators={Platform.YOUTUBE: "@creator"},
+    )
+
+    crawler = YouTubeCrawler(BrowserContextFactory(settings))
+
+    assert crawler.build_url(request) == "https://www.youtube.com/@creator/shorts"
