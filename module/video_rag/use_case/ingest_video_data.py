@@ -23,6 +23,7 @@ class VideoItemInput:
     caption: str = ""
     hashtag: str = ""
     language: str = "vi"
+    video_url: str = ""
 
 
 @dataclass
@@ -84,14 +85,13 @@ class IngestVideoDataUseCase:
         extractions.append(extraction)
         logger.info(
             f"✅ [IngestVideoDataUseCase] Giai đoạn 1 hoàn tất "
-            f"(Trích xuất được {extraction.speaker_count} speaker, duration: {extraction.duration_seconds:.1f}s)"
+            f"(Speakers: {extraction.speaker_count}, Duration: {extraction.duration_seconds:.1f}s)"
         )
 
-        # Merge extracted information with user-provided metadata
         final_caption = input_data.caption or extraction.caption
         final_hashtag = input_data.hashtag or extraction.hashtag
         final_summary = extraction.summary
-        final_video_url = str(video_path)
+        final_video_url = input_data.video_url or str(video_path)
         final_image_url = extraction.thumbnail_path
         segments_dict = [
             {

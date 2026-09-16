@@ -8,9 +8,6 @@ import tempfile
 import pytest
 
 from module.video_rag.domain.entities.reference_pattern import SimilarVideoContext
-from module.video_rag.infra.data_readers.json_reader_adapter import (
-    JsonDataReaderAdapter,
-)
 from module.video_rag.infra.embeddings.self_hosted_embed import (
     SelfHostedEmbeddingAdapter,
 )
@@ -28,7 +25,10 @@ from module.video_rag.port.vector_store_port import IVectorStorePort
 from module.video_rag.service.video_extraction_service import (
     VideoExtractionPipelineService,
 )
-from module.video_rag.use_case.ingest_video_data import IngestVideoDataUseCase
+from module.video_rag.use_case.ingest_video_data import (
+    IngestVideoDataUseCase,
+    VideoItemInput,
+)
 from module.video_rag.use_case.search_viral_patterns import (
     SearchViralPatternsUseCase,
 )
@@ -121,13 +121,27 @@ async def test_end_to_end_video_ingest_pipeline(temp_workspace, synthetic_video)
     media_extractor = FFmpegMediaExtractorAdapter()
     thumbnail_selector = VisionThumbnailSelectorAdapter(fallback_mode=True)
     transcriber = BentoWhisperXAdapter(fallback_mode=True)
-    data_reader = JsonDataReaderAdapter()
+
+    from module.video_rag.service.video_store_service import VideoStoreService
+
+    class MockTestS3Client:
+        def upload_file(self, file_path, bucket, key, content_type=None):
+            return f"https://dutmakers3.dutai.io.vn/{bucket}/{key}"
+
+        def upload_bytes(self, bucket, key, data, content_type="application/octet-stream"):
+            return f"https://dutmakers3.dutai.io.vn/{bucket}/{key}"
+
+        def ensure_bucket_exists(self, bucket: str) -> None:
+            pass
+
+    video_store_service = VideoStoreService(s3_client=MockTestS3Client())
 
     extract_service = VideoExtractionPipelineService(
         media_extractor_port=media_extractor,
         transcriber_port=transcriber,
         thumbnail_selector_port=thumbnail_selector,
         llm_port=llm_port,
+        video_store_service=video_store_service,
     )
 
     # 2. Wire single unified use case
@@ -135,16 +149,14 @@ async def test_end_to_end_video_ingest_pipeline(temp_workspace, synthetic_video)
         embedding_port=embedding_port,
         vector_store_port=vector_store,
         extract_service=extract_service,
-        data_reader=data_reader,
     )
 
-    # 3. Execute pipeline via dict input
-    payload = {
-        "video_path": synthetic_video,
-        "language": "vi",
-        "enable_diarization": True,
-    }
-    result = await ingest_use_case.execute(payload)
+    # 3. Execute pipeline via VideoItemInput
+    input_data = VideoItemInput(
+        video_path=synthetic_video,
+        language="vi",
+    )
+    result = await ingest_use_case.execute(input_data=input_data)
 
     # 4. Assert extraction and ingestion output
     assert result.total_indexed == 1
@@ -159,7 +171,7 @@ async def test_end_to_end_video_ingest_pipeline(temp_workspace, synthetic_video)
     assert len(record.caption) > 0
     assert len(record.summary) > 0
     assert "#" in record.hashtag
-    assert os.path.exists(extraction.thumbnail_path)
+    assert "https://dutmakers3.dutai.io.vn" in extraction.thumbnail_path
 
     # 5. Verify vector store state
     assert len(vector_store.storage) == 1
