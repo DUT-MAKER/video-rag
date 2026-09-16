@@ -4,3 +4,9 @@ venv/
 __pycache__/
 *.pyc
 .DS_Store
+
+# Crawled datasets and local artifacts
+data/storage/
+data/crawled_manifest.json
+data/ingest_queue/
+downloads/
