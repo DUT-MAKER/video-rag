@@ -21,6 +21,33 @@ class IngestRequestDTO(BaseModel):
     )
 
 
+class IngestVideoFileRequestDTO(BaseModel):
+    """Request DTO for extracting metadata from a raw video file and ingesting it."""
+
+    video_path: str = Field(
+        ...,
+        description="Path to video file on server disk (e.g. data/samples/sample_video.mp4)",
+        examples=["data/samples/sample_video.mp4"],
+    )
+    video_url: str | None = Field(
+        default=None,
+        description="Public/S3 URL for video playback (defaults to video_path)",
+    )
+    image_url: str | None = Field(
+        default=None,
+        description="Public/S3 URL for thumbnail image (defaults to extracted thumbnail path)",
+    )
+    language: str = Field(
+        default="vi",
+        description="Spoken language code for STT transcription (vi, en, etc.)",
+    )
+    enable_diarization: bool = Field(
+        default=True,
+        description="Whether to perform speaker diarization (phân loại câu này ai nói)",
+    )
+
+
+
 class SearchPatternsRequestDTO(BaseModel):
     """Request DTO for semantic similarity search over benchmark patterns."""
 

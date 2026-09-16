@@ -1,6 +1,5 @@
-FRONTEND_DIR=web
-.PHONY: help dev-api dev-web docker-dev-web migrate create-migration test install-hooks lint
-
+.PHONY: help dev-api dev-web docker-dev-web migrate create-migration test install-hooks lint run-ai
+ 
 help:
 	@echo "Available commands:"
 	@echo "  make dev-api        - Start the local development server (uvicorn)"
@@ -16,10 +15,8 @@ dev-api:
 	uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 
 dev-web:
-	cd ./$(FRONTEND_DIR) && pnpm dev
+	cd ./web && pnpm dev
 
-docker-dev-web:
-	docker compose up web
 
 migrate:
 	uv run alembic upgrade head
@@ -39,4 +36,7 @@ install-hooks:
 
 lint:
 	./.githooks/pre-commit
+
+run-ai:
+	uv run bentoml serve services.stt_service.service:WhisperXService --port 3001
 

@@ -11,19 +11,77 @@ from backend.presentation.schemas.response_dtos import (
     SceneResponseDTO,
     SearchPatternItem,
     StandardResponse,
+    TranscriptSegmentResponseDTO,
+    VideoFileIngestionResponseData,
     ViralScriptResponseDTO,
 )
 from backend.presentation.schemas.video_dtos import (
     GenerateScriptRequestDTO,
     IngestRequestDTO,
+    IngestVideoFileRequestDTO,
     SearchPatternsRequestDTO,
 )
 from module.video_rag.domain.exceptions import DomainValidationError
 from module.video_rag.use_case.generate_viral_script import GenerateViralScriptUseCase
 from module.video_rag.use_case.ingest_video_data import IngestVideoDataUseCase
+from module.video_rag.use_case.ingest_video_from_file import (
+    IngestVideoFromFileUseCase,
+)
 from module.video_rag.use_case.search_viral_patterns import SearchViralPatternsUseCase
 
 router = APIRouter(tags=["Video RAG"])
+
+
+@router.post(
+    "/ingest-video",
+    response_model=StandardResponse[VideoFileIngestionResponseData],
+    status_code=status.HTTP_200_OK,
+    summary="Extract metadata from raw video file and ingest into Vector Store",
+)
+@inject
+async def ingest_video_from_file(
+    payload: IngestVideoFileRequestDTO,
+    use_case: FromDishka[IngestVideoFromFileUseCase],
+) -> StandardResponse[VideoFileIngestionResponseData]:
+    """Extract metadata (FFmpeg audio/frames, WhisperX STT + speaker diarization,
+    Vision thumbnail, LLM enrichment) and index directly into ChromaDB.
+    """
+    result = await use_case.execute(
+        video_path=payload.video_path,
+        video_url=payload.video_url,
+        image_url=payload.image_url,
+        language=payload.language,
+        enable_diarization=payload.enable_diarization,
+    )
+
+    segments_dto = [
+        TranscriptSegmentResponseDTO(
+            start=seg.start,
+            end=seg.end,
+            text=seg.text,
+            speaker=seg.speaker,
+        )
+        for seg in result.extraction.transcript_segments
+    ]
+
+    return StandardResponse(
+        success=True,
+        message=f"Successfully extracted metadata and indexed video (speakers: {result.speaker_count}).",
+        data=VideoFileIngestionResponseData(
+            total_indexed=result.total_indexed,
+            caption=result.caption,
+            summary=result.summary,
+            hashtag=result.hashtag,
+            speaker_count=result.speaker_count,
+            duration_seconds=result.extraction.duration_seconds,
+            transcript=result.extraction.transcript,
+            transcript_with_speakers=result.extraction.transcript_with_speakers,
+            transcript_preview=result.transcript_preview,
+            transcript_segments=segments_dto,
+            thumbnail_path=result.thumbnail_path,
+            video_url=result.video_url,
+        ),
+    )
 
 
 @router.post(

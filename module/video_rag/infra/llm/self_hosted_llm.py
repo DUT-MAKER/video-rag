@@ -292,7 +292,8 @@ Quality Guidelines:
                                 continue
                         return
 
-                    raise ScriptGenerationError(f"LLM streaming service returned HTTP {response.status_code}")
+                    if response.status_code != 200:
+                        raise ScriptGenerationError(f"LLM streaming service returned HTTP {response.status_code}")
         except Exception as err:
             if isinstance(err, ScriptGenerationError):
                 raise
@@ -310,6 +311,7 @@ Quality Guidelines:
             "Respond ONLY with a JSON object in this format:\n"
             '{"intent": "generate_script"} or {"intent": "general_chat"}'
         )
+
         url = f"{self._api_base_url}/chat/completions"
         headers = {"Content-Type": "application/json"}
         if self._api_key:
@@ -344,3 +346,101 @@ Quality Guidelines:
             if isinstance(err, ScriptGenerationError):
                 raise
             raise ScriptGenerationError(f"Unable to classify intent via LLM: {err}") from err
+
+    async def enrich_video_metadata(
+        self,
+        transcript: str,
+        language: str = "vi",
+    ) -> dict[str, str]:
+        """Generate caption, summary, and hashtags from a speaker-labeled transcript."""
+        system_prompt = (
+            "You are a viral video metadata analyst and strategist for short-form platforms (TikTok, Reels, Shorts).\n"
+            "Given a speaker-labeled transcript, generate:\n"
+            "1. caption: A high-CTR, curiosity-driven viral video title (under 100 characters).\n"
+            "2. summary: A concise 2-3 sentence summary capturing the core message, dialogue dynamics, and key takeaway.\n"
+            "3. hashtag: 5-8 relevant, high-traffic trending hashtags as a single space-separated string (e.g. '#phattrienbanthan #kỷluat #viral #learnontiktok').\n\n"
+            "The transcript contains speaker labels (SPEAKER_00, SPEAKER_01, etc.) and timestamps.\n"
+            "Respond ONLY with valid JSON matching:\n"
+            '{"caption": "...", "summary": "...", "hashtag": "..."}\n'
+            "Do not wrap with markdown code blocks or add any additional commentary."
+        )
+
+        user_prompt = f"Transcript:\n{transcript}\n\nLanguage: {language}"
+
+        url = f"{self._api_base_url}/chat/completions"
+        headers = {"Content-Type": "application/json"}
+        if self._api_key:
+            headers["Authorization"] = f"Bearer {self._api_key}"
+
+        payload = {
+            "model": self._model_name,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            "temperature": 0.3,
+            "max_tokens": 2048,
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=self._timeout) as client:
+                response = await client.post(url, json=payload, headers=headers)
+                if response.status_code == 200:
+                    data = response.json()
+                    choices = data.get("choices", [])
+                    content = ""
+                    if choices:
+                        first_choice = choices[0]
+                        content = (first_choice.get("message", {}).get("content") or "").strip()
+                        if not content:
+                            reasoning = first_choice.get("message", {}).get("reasoning_content") or ""
+                            if reasoning:
+                                json_in_reasoning = re.search(r"\{[\s\S]*\}", reasoning)
+                                if json_in_reasoning:
+                                    content = json_in_reasoning.group(0)
+
+                    json_match = re.search(r"\{.*\}", content, re.DOTALL)
+                    if json_match:
+                        parsed = json.loads(json_match.group(0))
+                        return {
+                            "caption": str(parsed.get("caption", "")).strip(),
+                            "summary": str(parsed.get("summary", "")).strip(),
+                            "hashtag": str(parsed.get("hashtag", "")).strip(),
+                        }
+        except Exception:
+            pass
+
+        return self._fallback_enrich_video_metadata(transcript)
+
+    def _fallback_enrich_video_metadata(self, transcript: str) -> dict[str, str]:
+        """Offline fallback metadata extraction when LLM API is unavailable."""
+        clean_lines = [
+            line.strip()
+            for line in transcript.splitlines()
+            if line.strip() and not line.strip().startswith("#")
+        ]
+
+        raw_text = " ".join(clean_lines)
+        # Strip speaker labels for caption extraction if present
+        stripped_text = re.sub(r"SPEAKER_\d+\s*\[.*?\]:\s*", "", raw_text)
+
+        first_sentence = stripped_text.split(".")[0].strip() if stripped_text else "Video Chia Sẻ Bài Học Hay"
+        if len(first_sentence) > 80:
+            first_sentence = first_sentence[:77] + "..."
+
+        caption = f"{first_sentence} - Bí Quyết Viral Triệu View" if first_sentence else "Bí Quyết Tạo Kịch Bản Video Viral Triệu View"
+
+        summary = (
+            f"Video chia sẻ nội dung thảo luận với các luận điểm chính: "
+            f"{stripped_text[:200]}... Giúp người xem nắm bắt nhanh kiến thức hữu ích."
+            if stripped_text
+            else "Tóm tắt kịch bản video viral với nội dung hấp dẫn, cấu trúc hook mạnh mẽ và thông điệp giá trị."
+        )
+
+        hashtag = "#viral #learnontiktok #shortform #trending #videotrieuview #xuhuong"
+
+        return {
+            "caption": caption,
+            "summary": summary,
+            "hashtag": hashtag,
+        }

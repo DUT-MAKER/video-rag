@@ -27,6 +27,33 @@ class IngestionResponseData(BaseModel):
     indexed_ids: list[str]
 
 
+class TranscriptSegmentResponseDTO(BaseModel):
+    """Timestamped segment with attributed speaker."""
+
+    start: float
+    end: float
+    text: str
+    speaker: str
+
+
+class VideoFileIngestionResponseData(BaseModel):
+    """Payload returned upon successful video file extraction and ingestion."""
+
+    total_indexed: int
+    caption: str
+    summary: str
+    hashtag: str
+    speaker_count: int
+    duration_seconds: float = 0.0
+    transcript: str = ""
+    transcript_with_speakers: str = ""
+    transcript_preview: str = ""
+    transcript_segments: list[TranscriptSegmentResponseDTO] = []
+    thumbnail_path: str
+    video_url: str
+
+
+
 class SearchPatternItem(BaseModel):
     """Matched benchmark pattern item from vector search."""
 
