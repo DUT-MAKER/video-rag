@@ -114,3 +114,37 @@ Hệ thống nạp trực tiếp file JSON từ kho dữ liệu với cấu trú
   * Self-hosted LLM (OpenAI-compatible endpoint qua vLLM / Ollama / TGI).
   * Self-hosted Embedding model riêng.
 * **Testing:** Pytest (Unit tests với Mock/Fake Ports, Integration tests cho Adapters).
+
+---
+
+## 📥 6. Multi-Platform Video Crawler Pipeline
+
+Hệ thống tích hợp module crawler độc lập theo chuẩn Clean Architecture (`module/crawler/`) để xây dựng kho dữ liệu đầu vào cho RAG:
+
+### Yêu Cầu Hệ Thống (System Dependencies)
+* **FFmpeg** (Bắt buộc để `yt-dlp` ghép stream audio/video MP4):
+  * **macOS:** `brew install ffmpeg`
+  * **Ubuntu / Debian:** `sudo apt-get update && sudo apt-get install -y ffmpeg`
+
+### Chạy Crawler CLI:
+```bash
+# 1. Thu thập 1 video đơn lẻ (lưu vào data/storage/ và data/ingest_queue/)
+uv run python scripts/crawl.py "https://www.youtube.com/shorts/RiEg8h2jquM" --storage local
+
+# 2. Thu thập danh sách video từ file text (có delay 3s giữa các video)
+uv run python scripts/crawl.py --file scripts/targets.txt --delay 3.0 --storage local
+
+# 3. Chạy demo kiểm chứng End-to-End (Crawl -> Whisper -> Gemini -> Ingest -> Search)
+uv run python scripts/run_e2e.py "https://www.youtube.com/shorts/RiEg8h2jquM" --query "hành hung tài xế taxi"
+
+# 4. Soi trực tiếp dữ liệu đang lưu trong Vector DB (ChromaDB)
+uv run python scripts/inspect_db.py
+```
+
+### ⚠️ Cảnh Báo Rate-Limit & Circuit Breaker (IpBlocked):
+* Endpoint phụ đề của YouTube giới hạn số lượng request liên tục từ cùng một địa chỉ IP.
+* Khi gặp tín hiệu `IpBlockedStopSignal`, crawler sẽ **ngay lập tức dừng toàn bộ job** để bảo vệ tài nguyên compute (tránh việc hàng nghìn video tự động rơi vào Whisper).
+* **Giải pháp:** Tạm dừng 15-30 phút hoặc sử dụng mạng xoay vòng IP / Proxy / VPN khi crawl số lượng lớn.
+
+Chi tiết kỹ thuật toàn diện xem tại: [`docs/crawler-system-report.md`](docs/crawler-system-report.md).
+

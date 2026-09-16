@@ -4,6 +4,7 @@ import json
 import time
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
+from typing import Any
 
 from module.video_rag.domain.entities.chat_session import ChatSession
 from module.video_rag.domain.entities.reference_pattern import (

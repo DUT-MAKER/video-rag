@@ -70,6 +70,7 @@ class RawVideoRecord:
         return {
             "caption": self.caption,
             "hashtag": self.hashtag,
+            "transcript": self.transcript,
             "image_url": self.image_url,
             "summary": self.summary,
             "video_url": self.video_url,

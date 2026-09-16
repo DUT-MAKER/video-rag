@@ -21,6 +21,10 @@ dependencies = [
     "dishka>=1.4.0",
     "greenlet>=3.0",
     "alembic>=1.13.0",
+    "yt-dlp>=2025.2.19",
+    "youtube-transcript-api==1.2.4",
+    "faster-whisper>=1.1.1",
+    "minio>=7.2.15",
 ]
 
 [project.optional-dependencies]
