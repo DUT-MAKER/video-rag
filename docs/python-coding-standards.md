@@ -1,6 +1,6 @@
 # Python Coding Standards & Conventions (PEP 8)
 
-Tài liệu này quy định các tiêu chuẩn lập trình Python chính thức của dự án, tuân thủ nghiêm ngặt theo [PEP 8 Style Guide for Python Code](https://peps.python.org/pep-0008/) và các yêu cầu kỹ thuật của hệ thống **English Automation**.
+Tài liệu này quy định các tiêu chuẩn lập trình Python chính thức của dự án, tuân thủ nghiêm ngặt theo [PEP 8 Style Guide for Python Code](https://peps.python.org/pep-0008/) và các quy chuẩn thiết kế của hệ thống **RAG Viral Video**.
 
 ---
 
@@ -16,7 +16,7 @@ Tài liệu này quy định các tiêu chuẩn lập trình Python chính thứ
   - [Enum Classes for Categorical Options (`StrEnum`)](#enum-classes-for-categorical-options-strenum)
   - [Docstrings (PEP 257)](#docstrings-pep-257)
   - [Import Safety & Fallback Rules](#import-safety--fallback-rules)
-- [4. AI / PyTorch Specific Guidelines](#4-ai--pytorch-specific-guidelines)
+- [4. AI & Multimodal Specific Guidelines](#4-ai--multimodal-specific-guidelines)
 - [5. Pre-Commit Verification & Linting Tools](#5-pre-commit-verification--linting-tools)
 
 ---
@@ -24,140 +24,112 @@ Tài liệu này quy định các tiêu chuẩn lập trình Python chính thứ
 ## 1. Code Layout & Formatting
 
 ### Indentation & Line Length
-- **Indentation:** Use **4 spaces** per indentation level. **Never use tabs**.
-- **Line Length:** Limit code lines to a maximum of **120 characters**. Limit docstrings and comments to **72 characters**.
+- **Indentation:** Sử dụng **4 spaces** cho mỗi mức thụt dòng. **Tuyệt đối không dùng tabs**.
+- **Line Length:** Giới hạn dòng mã tối đa **120 characters**. Giới hạn docstrings và comments ở **80 characters**.
 
 ### Blank Lines & Source Encoding
-- **Source Encoding:** All Python source files MUST use **UTF-8** encoding.
-- **Top-Level Definitions:** Surround top-level function and class definitions with **2 blank lines**.
-- **Class Methods:** Surround method definitions inside a class with **1 blank line**.
-- Use blank lines sparingly inside functions to separate logical sections.
+- **Source Encoding:** Tất cả các tệp Python bắt buộc sử dụng mã hóa **UTF-8**.
+- **Top-Level Definitions:** Cách 2 dòng trống (`2 blank lines`) trước và sau các class và function định nghĩa ở mức module.
+- **Class Methods:** Cách 1 dòng trống (`1 blank line`) giữa các methods trong một class.
+- Sử dụng dòng trống hợp lý bên trong hàm để phân tách các đoạn logic.
 
 ### Top-Level Import Rules
-- Place all imports at the top of the file, immediately after module docstrings and before module globals.
-- Group imports in **3 distinct blocks** separated by a blank line:
-  1. Standard library imports
-  2. Third-party library imports
-  3. Local application/library imports
-- Use **absolute imports** over relative imports whenever possible.
-- Avoid wildcard imports (`from module import *`).
-- **Top-Level Imports Only:** All import statements MUST be placed at the top level of the file. Do **NOT** place imports inside functions, methods, or conditional blocks, and **NEVER** use `# pylint: disable=import-outside-toplevel` or inline suppression comments.
+- Đặt tất cả imports ở đầu file, ngay sau module docstring và trước các biến toàn cục.
+- Phân nhóm import thành **3 khối rõ ràng** cách nhau bởi một dòng trống:
+  1. Standard library imports (`os`, `sys`, `typing`, `dataclasses`...)
+  2. Third-party library imports (`pydantic`, `fastapi`, `sqlalchemy`, `dishka`, `httpx`...)
+  3. Local application imports (`core.*`, `module.*`, `backend.*`)
+- Sử dụng **absolute imports** thay vì relative imports để tăng tính minh bạch.
+- Tuyệt đối tránh wildcard imports (`from module import *`).
+- **Top-Level Imports Only:** Mọi lệnh import phải đặt ở mức cao nhất của file, không import bên trong function/method ngoại trừ trường hợp lazy import để tránh overhead nặng hoặc circular dependency không thể tránh khỏi.
 
 ```python
 """Module docstring describing purpose of this file."""
 
 import os
-from typing import List, Optional
+from typing import Any, Optional
 
-import numpy as np
-import torch
-import torch.nn as nn
+import httpx
+from pydantic import BaseModel
 
-from my_project.core.config import Settings
+from core.config import Settings
+from module.video_rag.domain.entities.viral_script import ViralScript
 ```
 
 ---
 
 ## 2. Naming Conventions
 
-| Code Element | Format Convention | Examples |
+| Thành Phần Code | Định Dạng Quy Ước | Ví Dụ Minh Họa |
 |---|---|---|
-| **Modules & Packages** | Short, lowercase, `snake_case` | `models_hub`, `data_loader`, `slide_builder` |
-| **Classes** | `CapWords` (PascalCase) | `VisionTransformer`, `SlideGenerator`, `EdgeTTSAdapter` |
-| **Functions & Variables** | `snake_case` | `train_epoch`, `learning_rate`, `generate_lesson` |
-| **Constants** | `ALL_CAPS_WITH_UNDERSCORES` | `DEFAULT_BATCH_SIZE = 64`, `MAX_RETRY_COUNT = 3` |
-| **Private Attributes** | Leading single underscore | `_private_tensor`, `_build_backbone()`, `_inject_audio()` |
+| **Modules & Packages** | Chữ thường, ngắn gọn, `snake_case` | `video_rag`, `user_repo`, `datetime_utils` |
+| **Classes** | `CapWords` (PascalCase) | `ViralScript`, `PostgresUserRepository`, `GenerateViralScriptUseCase` |
+| **Functions & Variables** | `snake_case` | `generate_script`, `hash_password`, `user_id` |
+| **Constants** | `ALL_CAPS_WITH_UNDERSCORES` | `DEFAULT_TOP_K = 5`, `JWT_ALGORITHM = "HS256"` |
+| **Private Attributes/Methods** | Dấu gạch dưới đơn ở đầu | `_session`, `_build_prompt()`, `_client` |
 
 ---
 
 ## 3. Programming Recommendations & Annotations
 
 ### Comparisons & Conditionals
-- Compare singletons like `None` using `is` or `is not`, never `==`.
-  - **Correct:** `if result is None:` | **Incorrect:** `if result == None:`
-- Evaluate boolean values directly:
-  - **Correct:** `if is_valid:` | **Incorrect:** `if is_valid == True:`
-- Check for empty sequences (lists, strings, tuples) by truthiness:
-  - **Correct:** `if not sequence:` | **Incorrect:** `if len(sequence) == 0:`
+- So sánh các singleton như `None` bằng `is` hoặc `is not`, không dùng `==`.
+  - **Đúng:** `if result is None:` | **Sai:** `if result == None:`
+- Đánh giá giá trị boolean trực tiếp:
+  - **Đúng:** `if is_active:` | **Sai:** `if is_active == True:`
+- Kiểm tra danh sách/chuỗi rỗng qua truthiness:
+  - **Đúng:** `if not records:` | **Sai:** `if len(records) == 0:`
 
 ### Type Hints & Annotations
-All public functions and class methods MUST include full Python type annotations for all parameters and return values:
+Tất cả các public functions, methods, và use cases bắt buộc có đầy đủ Python type annotations cho cả tham số và giá trị trả về:
 
 ```python
-def process_embeddings(
-    features: torch.Tensor,
-    mask: Optional[torch.Tensor] = None,
-) -> torch.Tensor:
-    """Processes input feature tensors."""
+async def search_patterns(
+    self,
+    query_vector: list[float],
+    top_k: int = 5,
+) -> list[dict[str, Any]]:
+    """Searches top-k similar video patterns from vector store."""
     ...
 ```
 
 ### Enum Classes for Categorical Options (`StrEnum`)
-Whenever defining function parameters or configuration options that accept a finite set of categorical choices, formats, or modes (e.g., image formats, summary statistics, input modes, voice accents, CEFR levels), developers MUST define and use Python `enum.StrEnum` classes instead of raw string literals.
-
-Function signatures MUST accept the Enum type (or `EnumClass | str`), and CLI choices MUST bind directly to `[e.value for e in EnumClass]`.
+Khi định nghĩa các trường phân loại hữu hạn (như hook types, platform targets, video duration presets, roles), lập trình viên bắt buộc sử dụng Python `enum.StrEnum` thay vì string tự do.
 
 ```python
 from enum import StrEnum
 
-class ImageFormat(StrEnum):
-    PNG = "png"
-    JPEG = "jpeg"
-    TIFF = "tiff"
-
-class AccentType(StrEnum):
-    US = "en-US"
-    UK = "en-GB"
-    AU = "en-AU"
-
-def convert_image(image_path: str, format_type: ImageFormat) -> str:
-    """Converts image to requested format."""
-    print(f"Converting to {format_type.value}")
-    return format_type.value
+class PlatformTarget(StrEnum):
+    TIKTOK = "tiktok"
+    SHORTS = "youtube_shorts"
+    REELS = "instagram_reels"
 ```
 
 ### Docstrings (PEP 257)
-Provide PEP 257 compliant triple-quoted docstrings for all public modules, functions, classes, and methods using Google docstring style:
+Tuân thủ Google Docstrings style cho các modules, classes và public methods:
 
 ```python
-def train_epoch(
-    model: nn.Module,
-    dataloader: torch.utils.data.DataLoader,
-    optimizer: torch.optim.Optimizer,
-    device: torch.device,
-) -> float:
-    """Runs a single training epoch over the given dataset.
+async def execute(
+    self, topic: str, duration: int
+) -> ViralScript:
+    """Executes the viral script generation use case.
 
     Args:
-        model: PyTorch model instance to be trained.
-        dataloader: DataLoader yielding input features and target labels.
-        optimizer: PyTorch optimizer instance (e.g. AdamW).
-        device: Target execution device (cuda or cpu).
+        topic: The topic or niche for the video.
+        duration: Desired duration in seconds.
 
     Returns:
-        float: Average training loss for the epoch.
+        ViralScript: The fully synthesized viral script entity.
     """
 ```
 
-### Import Safety & Fallback Rules
-- **No Top-Level `try...except ImportError` Fallbacks:** Avoid wrapping top-level imports in `try...except ImportError` or `try...except ModuleNotFoundError` blocks that set imported symbols to `None` or swallow import failures silently.
-- All project dependencies MUST be explicitly declared in `pyproject.toml` or `requirements.txt` and imported directly at top level.
-
 ---
 
-## 4. AI / PyTorch Specific Guidelines
+## 4. AI & Multimodal Specific Guidelines
 
-- **Device Passing:** Always allow explicit device passing (`torch.device('cuda' if torch.cuda.is_available() else 'cpu')`).
-- **Inference Mode:** Use `@torch.inference_mode()` or `with torch.no_grad():` during evaluation.
-- **Reproducibility:** Include seed initialization for `random`, `numpy`, and `torch`:
-  ```python
-  def set_seed(seed: int = 42) -> None:
-      import random
-      random.seed(seed)
-      np.random.seed(seed)
-      torch.manual_seed(seed)
-      torch.cuda.manual_seed_all(seed)
-  ```
+- **Asynchronous Execution:** Mọi tương tác gọi model LLM, embedding hay storage I/O đều phải sử dụng `async`/`await` qua `httpx.AsyncClient` hoặc async drivers.
+- **Fail-Safe / Fallback:** Khi gọi API LLM ngoài hoặc self-hosted, luôn cấu hình `timeout` hợp lý (ví dụ: 60-120s) và cơ chế retry có giới hạn (exponential backoff).
+- **Prompt Isolation:** Các template prompt phức tạp nên được cô lập và tổ chức trong các hàm helper chuyên biệt hoặc file template riêng, tránh hardcode chuỗi prompt khổng lồ trực tiếp trong Use Case logic.
 
 ---
 
@@ -165,5 +137,5 @@ def train_epoch(
 
 Dự án áp dụng bộ công cụ kiểm tra tự động trước khi commit code:
 * **Format & Linting:** `ruff format .` và `ruff check .`
-* **Static Type Checking:** `mypy src --strict`
-* **Test Runner:** `pytest -v tests/`
+* **Static Type Checking:** `mypy module core backend --strict`
+* **Test Suite:** `pytest` (chạy 100% tests cho cả `tests/` và `backend/tests/`)
