@@ -1,4 +1,4 @@
-"""Focused acquisition pipeline for videos consumed by the RAG module."""
+"""Focused acquisition pipeline for videos stored in S3/MinIO."""
 
 from .domain import CrawlJobRequest, CrawledVideo, DiscoveryMethod, Platform
 

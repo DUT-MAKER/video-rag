@@ -31,8 +31,6 @@ class CrawlJobModel(Base):
     discovered_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     accepted_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     rejected_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    indexed_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    ingest_failed_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     rejection_reasons: Mapped[dict[str, int]] = mapped_column(
         JSONB, default=dict, nullable=False
     )
@@ -49,7 +47,6 @@ class CrawledVideoModel(Base):
         UniqueConstraint("platform", "platform_video_id", name="uq_crawler_video_native"),
         UniqueConstraint("canonical_url", name="uq_crawler_video_canonical_url"),
         Index("ix_crawler_videos_job_id", "job_id"),
-        Index("ix_crawler_videos_indexed_at", "indexed_at"),
         {"schema": SCHEMA},
     )
 
@@ -64,17 +61,11 @@ class CrawledVideoModel(Base):
     canonical_url: Mapped[str] = mapped_column(Text, nullable=False)
     caption: Mapped[str] = mapped_column(Text, nullable=False)
     hashtag: Mapped[str] = mapped_column(Text, nullable=False)
-    transcript: Mapped[str] = mapped_column(Text, nullable=False)
     image_url: Mapped[str] = mapped_column(Text, nullable=False)
-    summary: Mapped[str] = mapped_column(Text, nullable=False)
     video_url: Mapped[str] = mapped_column(Text, nullable=False)
     metrics: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, nullable=False)
     provenance: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, nullable=False)
     quality_warnings: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    indexed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    ingest_error: Mapped[str | None] = mapped_column(Text)
-    ingest_attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    next_ingest_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

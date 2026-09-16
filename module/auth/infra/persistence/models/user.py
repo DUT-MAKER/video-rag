@@ -1,10 +1,12 @@
 """SQLAlchemy User Model."""
 
 from datetime import datetime
+
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.datetime_utils import now_ict
 from module.auth.domain.entities.user import UserEntity
+
 from .base import Base
 
 

@@ -36,25 +36,38 @@ async def _sse_stream_generator(
         session_id=payload.session_id,
         top_k_references=payload.top_k_references,
     ):
-        event_data = {
-            "session_id": chunk.session_id,
-            "token": chunk.token,
-            "is_first": chunk.is_first,
-            "is_done": chunk.is_done,
-            "intent": chunk.intent.value if chunk.intent else "general_chat",
-            "referenced_patterns": [
-                {
-                    "original_caption": r.original_caption,
-                    "matched_hook": r.matched_hook,
-                    "minio_video_url": r.minio_video_url,
-                    "similarity_score": r.similarity_score,
-                    "summary": r.summary,
-                    "image_url": r.image_url,
-                }
-                for r in chunk.referenced_patterns
-            ],
-        }
-        yield f"data: {json.dumps(event_data, ensure_ascii=False)}\n\n"
+        if chunk.is_first:
+            metadata_payload = {
+                "event": "metadata",
+                "session_id": chunk.session_id,
+                "intent": chunk.intent.value if chunk.intent else "general_chat",
+                "referenced_patterns": [
+                    {
+                        "original_caption": r.original_caption,
+                        "matched_hook": r.matched_hook,
+                        "minio_video_url": r.minio_video_url,
+                        "similarity_score": r.similarity_score,
+                        "summary": r.summary,
+                        "image_url": r.image_url,
+                    }
+                    for r in chunk.referenced_patterns
+                ],
+            }
+            yield f"data: {json.dumps(metadata_payload, ensure_ascii=False)}\n\n"
+        elif chunk.is_done:
+            done_payload = {
+                "event": "done",
+                "session_id": chunk.session_id,
+            }
+            yield f"data: {json.dumps(done_payload, ensure_ascii=False)}\n\n"
+            yield "data: [DONE]\n\n"
+        else:
+            token_payload = {
+                "event": "token",
+                "session_id": chunk.session_id,
+                "token": chunk.token,
+            }
+            yield f"data: {json.dumps(token_payload, ensure_ascii=False)}\n\n"
 
 
 @router.post(
@@ -174,14 +187,14 @@ async def get_session_history(
 
 @router.delete(
     "/sessions/{session_id}",
-    response_model=StandardResponse[dict[str, str]],
+    response_model=StandardResponse[dict[str, object]],
     summary="Delete a chat session",
 )
 @inject
 async def delete_chat_session(
     session_id: str,
     use_case: FromDishka[ChatWithViralAssistantUseCase],
-) -> StandardResponse[dict[str, str]]:
+) -> StandardResponse[dict[str, object]]:
     """Delete session by ID."""
     deleted = await use_case.delete_session(session_id)
     if not deleted:
@@ -190,7 +203,7 @@ async def delete_chat_session(
     return StandardResponse(
         success=True,
         message=f"Session '{session_id}' deleted successfully.",
-        data={"session_id": session_id},
+        data={"session_id": session_id, "deleted": True},
     )
 
 

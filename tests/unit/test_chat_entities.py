@@ -70,11 +70,8 @@ def test_chat_session_lifecycle_and_trimming() -> None:
 
 def test_chat_intent_and_roles() -> None:
     """Verify StrEnum values for ChatIntent and MessageRole."""
-    assert ChatIntent.BRAINSTORM_HOOKS == "brainstorm_hooks"
-    assert ChatIntent.DRAFT_SCRIPT == "draft_script"
-    assert ChatIntent.REFINE_SCENE == "refine_scene"
-    assert ChatIntent.EXPORT_PROMPTS == "export_prompts"
     assert ChatIntent.GENERAL_CHAT == "general_chat"
+    assert ChatIntent.GENERATE_SCRIPT == "generate_script"
 
     assert MessageRole.SYSTEM == "system"
     assert MessageRole.USER == "user"

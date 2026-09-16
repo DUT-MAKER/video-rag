@@ -19,9 +19,7 @@ def check_video_quality(video: CrawledVideo) -> QualityResult:
     required = {
         "caption_missing": video.caption,
         "hashtag_missing": video.hashtag,
-        "transcript_missing": video.transcript,
         "image_url_missing": video.image_url,
-        "summary_missing": video.summary,
         "video_url_missing": video.video_url,
     }
     reasons.extend(key for key, value in required.items() if not value.strip())

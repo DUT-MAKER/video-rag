@@ -1,6 +1,7 @@
 """FastAPI dependency helpers for authentication and request context."""
 
 from typing import Annotated
+
 from fastapi import Depends, HTTPException, Request
 from pydantic import BaseModel
 
@@ -24,9 +25,7 @@ async def get_current_user(request: Request) -> UserContext:
             access_token = auth_header.split(" ")[1]
 
     if not access_token:
-        raise HTTPException(
-            status_code=401, detail="Chưa xác thực: Không tìm thấy token"
-        )
+        raise HTTPException(status_code=401, detail="Chưa xác thực: Không tìm thấy token")
 
     payload = decode_access_token(access_token)
     if not payload:
@@ -39,9 +38,7 @@ async def get_current_user(request: Request) -> UserContext:
     role = payload.get("role")
 
     if uid is None or role is None:
-        raise HTTPException(
-            status_code=401, detail="Chưa xác thực: Payload token không hợp lệ"
-        )
+        raise HTTPException(status_code=401, detail="Chưa xác thực: Payload token không hợp lệ")
 
     return UserContext(
         id=int(uid),
@@ -56,9 +53,7 @@ def require_roles(*allowed_roles: str):
         user: Annotated[UserContext, Depends(get_current_user)],
     ) -> UserContext:
         if user.role not in allowed_roles:
-            raise HTTPException(
-                status_code=403, detail="Không có quyền truy cập chức năng này"
-            )
+            raise HTTPException(status_code=403, detail="Không có quyền truy cập chức năng này")
         return user
 
     return dependency

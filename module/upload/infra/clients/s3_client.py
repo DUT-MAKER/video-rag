@@ -1,6 +1,7 @@
 """Concrete implementation of IS3Client for S3-compatible storage (AWS S3, MinIO)."""
 
 from typing import Any
+
 import boto3
 from botocore.config import Config
 
@@ -31,15 +32,31 @@ class S3Client(IS3Client):
         """Uploads a file-like object synchronously using boto3."""
         self._client.upload_fileobj(file_obj, bucket, key)
 
+    def upload_bytes(
+        self,
+        bucket: str,
+        key: str,
+        data: bytes,
+        content_type: str = "application/octet-stream",
+    ) -> None:
+        """Upload raw bytes to S3/MinIO using boto3."""
+        import io
+
+        extra_args = {"ContentType": content_type} if content_type else {}
+        self._client.upload_fileobj(
+            io.BytesIO(data),
+            bucket,
+            key,
+            ExtraArgs=extra_args if extra_args else None,
+        )
+
     def get_object_url(self, bucket: str, key: str) -> str:
         """Generates the direct HTTP/HTTPS URL for the S3 object."""
         if self._endpoint_url:
             return f"{self._endpoint_url}/{bucket}/{key}"
         return f"https://{bucket}.s3.amazonaws.com/{key}"
 
-    def generate_presigned_upload_url(
-        self, bucket: str, key: str, content_type: str, expires_in: int = 3600
-    ) -> str:
+    def generate_presigned_upload_url(self, bucket: str, key: str, content_type: str, expires_in: int = 3600) -> str:
         """Generates a presigned PUT upload URL using boto3."""
         return self._client.generate_presigned_url(
             "put_object",

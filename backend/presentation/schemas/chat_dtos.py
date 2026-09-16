@@ -1,11 +1,12 @@
 """Chat Request and Response DTOs."""
 
 from typing import Any
+
 from pydantic import BaseModel, Field
 
+from backend.presentation.schemas.response_dtos import ReferencedPatternResponseDTO
 from module.video_rag.domain.value_objects.chat_intent import ChatIntent
 from module.video_rag.domain.value_objects.message_role import MessageRole
-from backend.presentation.schemas.response_dtos import ReferencedPatternResponseDTO
 
 
 class ChatRequestDTO(BaseModel):

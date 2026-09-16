@@ -11,6 +11,7 @@ router = APIRouter(prefix="/uploads", tags=["uploads"])
 
 
 @router.post("", response_model=UploadOut)
+@router.post("/file", response_model=UploadOut)
 @inject
 async def upload_file(
     use_case: FromDishka[UploadFileUseCase],

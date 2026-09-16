@@ -20,8 +20,9 @@ def test_app_initialization():
     assert app.title == app_settings.name
     assert db_settings.url is not None
     assert auth_settings.algorithm == "HS256"
-    assert vector_store_settings.chroma_collection_name == "viral_video_patterns"
-    routes = [route.path for route in app.routes]
+    assert vector_store_settings.table_name == "viral_video_embeddings"
+    routes = list(app.openapi()["paths"].keys())
+
     assert "/api/v1/health" in routes
     assert "/api/v1/auth/register" in routes
     assert "/api/v1/auth/login" in routes
@@ -31,4 +32,3 @@ def test_app_initialization():
     assert "/api/v1/search" in routes
     assert "/api/v1/generate" in routes
     assert "/api/v1/chat" in routes
-

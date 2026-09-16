@@ -15,6 +15,11 @@ class HookType(str, Enum):
     BOLD_CLAIM = "bold_claim"
     VISUAL_INTERRUPT = "visual_interrupt"
     SECRET_REVEAL = "secret_reveal"
+    # Legacy & domain benchmark hook formulas
+    SHOCKING_FACT = "shocking_fact"
+    PROBLEM_AGITATE = "problem_agitate"
+    STORY_ORIGIN = "story_origin"
+    SECRET_HACK = "secret_hack"
 
     @classmethod
     def from_str(cls, value: str) -> "HookType":

@@ -68,5 +68,4 @@ __all__ = [
     "UnauthorizedException",
     "ForbiddenException",
     "ConflictException",
-    "verify_password",
 ]

@@ -82,9 +82,7 @@ class CrawlerRepository:
             "canonical_url": video.canonical_url,
             "caption": video.caption,
             "hashtag": video.hashtag,
-            "transcript": video.transcript,
             "image_url": video.image_url,
-            "summary": video.summary,
             "video_url": video.video_url,
             "metrics": video.metrics,
             "provenance": video.provenance,
@@ -101,47 +99,6 @@ class CrawlerRepository:
             ).returning(CrawledVideoModel.id)
             return (await session.execute(statement)).scalar_one()
 
-    async def mark_indexed(self, video_id: UUID) -> None:
-        async with self._sessions.begin() as session:
-            row = await session.get(CrawledVideoModel, video_id)
-            if row:
-                row.indexed_at = utc_now()
-                row.ingest_error = None
-                row.ingest_attempts += 1
-                row.next_ingest_at = None
-                row.updated_at = utc_now()
-
-    async def mark_ingest_failed(self, video_id: UUID, detail: str) -> None:
-        async with self._sessions.begin() as session:
-            row = await session.get(CrawledVideoModel, video_id)
-            if row:
-                row.ingest_attempts += 1
-                row.ingest_error = detail[:2000]
-                delay_seconds = min(300, 10 * (2 ** max(0, row.ingest_attempts - 1)))
-                row.next_ingest_at = utc_now() + timedelta(seconds=delay_seconds)
-                row.updated_at = utc_now()
-
-    async def pending_ingest(
-        self, max_attempts: int, limit: int = 20
-    ) -> list[tuple[UUID, UUID, CrawledVideo]]:
-        async with self._sessions() as session:
-            rows = (
-                await session.execute(
-                    select(CrawledVideoModel)
-                    .where(
-                        CrawledVideoModel.indexed_at.is_(None),
-                        CrawledVideoModel.ingest_attempts < max_attempts,
-                        or_(
-                            CrawledVideoModel.next_ingest_at.is_(None),
-                            CrawledVideoModel.next_ingest_at <= utc_now(),
-                        ),
-                    )
-                    .order_by(CrawledVideoModel.created_at)
-                    .limit(limit)
-                )
-            ).scalars()
-            return [(row.job_id, row.id, self._to_domain(row)) for row in rows]
-
     async def record_result(self, job_id: UUID, result: str, reason: str | None = None) -> None:
         async with self._sessions.begin() as session:
             row = await session.get(CrawlJobModel, job_id, with_for_update=True)
@@ -156,10 +113,6 @@ class CrawlerRepository:
                 reasons = dict(row.rejection_reasons)
                 reasons[reason or "unknown"] = reasons.get(reason or "unknown", 0) + 1
                 row.rejection_reasons = reasons
-            elif result == "indexed":
-                row.indexed_count += 1
-            elif result == "ingest_failed":
-                row.ingest_failed_count += 1
             row.lease_expires_at = utc_now() + timedelta(hours=1)
             row.updated_at = utc_now()
 
@@ -202,15 +155,12 @@ class CrawlerRepository:
             return self._job_dict(row) if row else None
 
     async def list_videos(
-        self, platform: Platform | None = None, indexed: bool | None = None, limit: int = 50
+        self, platform: Platform | None = None, limit: int = 50
     ) -> list[dict[str, Any]]:
         async with self._sessions() as session:
             statement = select(CrawledVideoModel)
             if platform:
                 statement = statement.where(CrawledVideoModel.platform == platform.value)
-            if indexed is not None:
-                predicate = CrawledVideoModel.indexed_at.is_not(None)
-                statement = statement.where(predicate if indexed else ~predicate)
             rows = (
                 await session.execute(
                     statement.order_by(CrawledVideoModel.created_at.desc()).limit(limit)
@@ -225,22 +175,3 @@ class CrawlerRepository:
     @staticmethod
     def _video_dict(row: CrawledVideoModel) -> dict[str, Any]:
         return {column.name: getattr(row, column.name) for column in row.__table__.columns}
-
-    @staticmethod
-    def _to_domain(row: CrawledVideoModel) -> CrawledVideo:
-        return CrawledVideo(
-            id=row.id,
-            platform=Platform(row.platform),
-            platform_video_id=row.platform_video_id,
-            canonical_url=row.canonical_url,
-            caption=row.caption,
-            hashtag=row.hashtag,
-            transcript=row.transcript,
-            image_url=row.image_url,
-            summary=row.summary,
-            video_url=row.video_url,
-            metrics=row.metrics,
-            published_at=row.published_at,
-            provenance=row.provenance,
-            quality_warnings=row.quality_warnings,
-        )

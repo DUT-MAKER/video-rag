@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import AsyncIterable, Generator
+
 import pytest
 import pytest_asyncio
 from dishka import Provider, Scope, make_async_container, provide
@@ -8,10 +9,12 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from app.domain.interfaces.s3_client import IS3Client
-from app.infrastructure.persistence.models.base import Base
-from app.infrastructure.di.repositories import RepositoryProvider
-from app.infrastructure.di.use_cases import UseCaseProvider
+import module.auth.infra.persistence.models.user  # noqa: F401
+from backend.di.providers import AuthModuleProvider
+from module.auth.infra.persistence.models.base import Base
+from module.upload.port.s3_client import IS3Client
+from module.upload.use_case.presign_upload import PresignUploadUseCase
+from module.upload.use_case.upload_file import UploadFileUseCase
 
 # SQLite In-memory Database for testing
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -38,15 +41,28 @@ class TestClientProvider(Provider):
             def upload_fileobj(self, file_obj, bucket, key):
                 pass
 
+            def upload_bytes(self, bucket, key, data, content_type="application/octet-stream"):
+                pass
+
             def get_object_url(self, bucket, key):
                 return f"http://mock-s3/{bucket}/{key}"
 
-            def generate_presigned_upload_url(
-                self, bucket, key, content_type, expires_in=3600
-            ):
+            def generate_presigned_upload_url(self, bucket, key, content_type, expires_in=3600):
                 return f"http://mock-s3/{bucket}/{key}?presigned=true"
 
         return MockS3Client()
+
+
+class TestUploadModuleProvider(Provider):
+    scope = Scope.REQUEST
+
+    @provide
+    def upload_file_use_case(self, s3_client: IS3Client) -> UploadFileUseCase:
+        return UploadFileUseCase(s3_client=s3_client)
+
+    @provide
+    def presign_upload_use_case(self, s3_client: IS3Client) -> PresignUploadUseCase:
+        return PresignUploadUseCase(s3_client=s3_client)
 
 
 @pytest.fixture(scope="session")
@@ -67,9 +83,7 @@ async def test_engine():
 
 @pytest_asyncio.fixture(scope="function")
 async def test_session_maker(test_engine):
-    session_maker = async_sessionmaker(
-        test_engine, class_=AsyncSession, expire_on_commit=False
-    )
+    session_maker = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
     yield session_maker
     # Reset DB between tests
     async with test_engine.begin() as conn:
@@ -80,17 +94,20 @@ async def test_session_maker(test_engine):
 @pytest_asyncio.fixture(scope="function")
 async def test_app(test_session_maker) -> AsyncIterable[FastAPI]:
     from fastapi import FastAPI
-    from app.presentation.api.routers import auth_router, me_router, uploads_router
-    from app.presentation.api.exceptions import setup_exception_handlers
+
+    from backend.presentation.api.exceptions import setup_exception_handlers
+    from backend.presentation.api.v1.auth import router as auth_router
+    from backend.presentation.api.v1.me import router as me_router
+    from backend.presentation.api.v1.uploads import router as uploads_router
 
     app = FastAPI(title="Test App")
     setup_exception_handlers(app)
 
     container = make_async_container(
         TestDatabaseProvider(test_session_maker),
-        RepositoryProvider(),
+        AuthModuleProvider(),
         TestClientProvider(),
-        UseCaseProvider(),
+        TestUploadModuleProvider(),
     )
     setup_dishka(container, app)
 

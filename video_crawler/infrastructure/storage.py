@@ -16,8 +16,11 @@ from video_crawler.domain import DiscoveredVideo, MediaArtifact
 
 class S3CrawlerStorage:
     def __init__(self, s3: S3Settings, crawler: CrawlerSettings) -> None:
+        if not all((s3.endpoint, s3.access_key, s3.secret_key, s3.bucket_name)):
+            raise RuntimeError("S3_CONFIGURATION_INCOMPLETE")
         scheme = "https" if s3.secure else "http"
-        self.endpoint = f"{scheme}://{s3.endpoint}" if s3.endpoint else ""
+        endpoint = s3.endpoint.rstrip("/")
+        self.endpoint = endpoint if "://" in endpoint else f"{scheme}://{endpoint}"
         self.bucket = s3.bucket_name
         self.prefix = crawler.minio_prefix.strip("/")
         self.client = boto3.client(

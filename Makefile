@@ -13,7 +13,7 @@ help:
 	@echo "  make lint           - Run all formatting, linting, and tests (same as pre-commit)"
 
 dev-api:
-	cd ./backend && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+	uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 
 dev-web:
 	cd ./$(FRONTEND_DIR) && pnpm dev
@@ -22,14 +22,14 @@ docker-dev-web:
 	docker compose up web
 
 migrate:
-	cd ./backend && uv run alembic upgrade head
+	uv run alembic upgrade head
 
 create-migration:
 	@if [ -z "$(DESC)" ]; then echo "Error: Please specify DESC, e.g., make create-migration DESC=\"add new table\""; exit 1; fi
-	cd ./backend && uv run alembic revision --autogenerate -m "$(DESC)"
+	uv run alembic revision --autogenerate -m "$(DESC)"
 
 test:
-	cd ./backend && uv run pytest
+	uv run pytest
 
 install-hooks:
 	mkdir -p .git/hooks

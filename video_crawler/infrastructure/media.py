@@ -28,16 +28,15 @@ class YtDlpMediaResolver:
             cookie_file = self._cookie_file(video, work_dir)
             info = await asyncio.to_thread(self._download, video.canonical_url, work_dir, cookie_file)
             video_path = self._video_path(info, work_dir)
-            subtitles = [str(path) for path in work_dir.glob("*.vtt")]
             thumbnail_path = await self._thumbnail(video.thumbnail_url, work_dir)
             if thumbnail_path is None:
                 thumbnail_path = await asyncio.to_thread(self._extract_frame, video_path, work_dir)
             return MediaArtifact(
                 video_path=str(video_path),
                 thumbnail_path=str(thumbnail_path) if thumbnail_path else None,
-                subtitle_paths=subtitles,
                 duration_seconds=float(info["duration"]) if info.get("duration") else None,
                 work_dir=str(work_dir),
+                metrics=self._metrics(info),
             )
         except Exception:
             shutil.rmtree(work_dir, ignore_errors=True)
@@ -51,9 +50,6 @@ class YtDlpMediaResolver:
             "outtmpl": str(work_dir / "video.%(ext)s"),
             "format": "bv*+ba/b",
             "merge_output_format": "mp4",
-            "writesubtitles": True,
-            "writeautomaticsub": True,
-            "subtitlesformat": "vtt",
             "noplaylist": True,
             "quiet": True,
             "no_warnings": True,
@@ -111,6 +107,22 @@ class YtDlpMediaResolver:
             if path.exists() and path.suffix.lower() not in {".vtt", ".part", ".txt"}:
                 return path
         raise RuntimeError("MEDIA_DOWNLOAD_FAILED: video file was not produced")
+
+    @staticmethod
+    def _metrics(info: dict[str, Any]) -> dict[str, int | float]:
+        metrics: dict[str, int | float] = {}
+        fields = {
+            "view_count": "view_count",
+            "like_count": "like_count",
+            "comment_count": "comment_count",
+            "share_count": "share_count",
+            "repost_count": "share_count",
+        }
+        for source, target in fields.items():
+            value = info.get(source)
+            if target not in metrics and isinstance(value, (int, float)) and not isinstance(value, bool):
+                metrics[target] = value
+        return metrics
 
     @staticmethod
     async def _thumbnail(url: str, work_dir: Path) -> Path | None:

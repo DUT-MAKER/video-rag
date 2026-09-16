@@ -9,6 +9,7 @@ from backend.presentation.schemas.user_dtos import (
     UserOut,
     UserRegisterInput,
 )
+from core.config import auth_settings
 from module.auth.use_case.login import LoginUseCase, UserLoginInputDTO
 from module.auth.use_case.register import RegisterUseCase, UserRegisterInputDTO
 
@@ -23,7 +24,7 @@ def _set_auth_cookie(response: Response, access_token: str):
         httponly=True,
         secure=False,
         samesite="lax",
-        max_age=settings.jwt_expire_minutes * 60,
+        max_age=auth_settings.expire_minutes * 60,
     )
 
 

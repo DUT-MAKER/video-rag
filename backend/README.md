@@ -1,77 +1,103 @@
-# FastAPI Backend Boilerplate (Clean Architecture / DDD)
+# Backend — Delivery & Presentation Layer (FastAPI + Dishka DI)
 
-Đây là một template boilerplate cho dự án backend sử dụng FastAPI, tuân thủ theo nguyên lý **Clean Architecture** và **Domain-Driven Design (DDD)**, sử dụng container Dependency Injection **Dishka**, cơ sở dữ liệu **PostgreSQL** (thông qua SQLAlchemy), quản lý lược đồ database với **Alembic**, và hỗ trợ lưu trữ tệp lên **S3 / MinIO**.
-
-## Cấu trúc thư mục
-
-```text
-backend/
-├── pyproject.toml      # Quản lý dependencies (sử dụng uv)
-├── Dockerfile          # Docker cấu hình cho môi trường production
-├── docker-compose.yml  # File compose khởi tạo Postgres & MinIO local
-├── alembic.ini         # Cấu hình chung cho migrations
-├── alembic/            # Thư mục chứa cấu hình chạy và tệp phiên bản migrations
-├── app/
-│   ├── main.py         # Khởi tạo FastAPI app, middlewares & router
-│   ├── config.py       # Pydantic Settings cấu hình môi trường
-│   ├── core/           # Chức năng core (JWT, băm mật khẩu, ICT time)
-│   ├── domain/         # Chứa entities, exceptions, interfaces (Repository protocols)
-│   ├── application/    # Chứa use_cases nghiệp vụ & dtos
-│   ├── infrastructure/ # database, clients (S3), repositories (SQLAlchemy), di (Dishka)
-│   └── presentation/   # FastAPI API routers & dependencies (xác thực token)
-└── tests/              # Các bài kiểm thử unit & integration test
-```
-
-## Hướng dẫn cài đặt & Chạy local
-
-### 1. Chuẩn bị môi trường
-Yêu cầu đã cài đặt:
-- Python >= 3.11
-- [uv](https://github.com/astral-sh/uv) (Trình quản lý package siêu nhanh của Astral) hoặc `pip`
-- Docker & Docker Compose (để chạy Postgres & MinIO)
-
-### 2. Khởi động Cơ sở dữ liệu và Storage (Local Dev)
-Chạy lệnh sau tại thư mục `backend/` để khởi động cơ sở dữ liệu PostgreSQL và MinIO (S3 mock):
-```bash
-docker compose up -d
-```
-MinIO Console sẽ chạy tại: `http://localhost:9001` (user: `miniouser`, pass: `miniopassword`).
-Một bucket `boilerplate-uploads` sẽ tự động được khởi tạo và phân quyền public-read.
-
-### 3. Cài đặt các thư viện Python
-Sử dụng `uv`:
-```bash
-uv sync
-```
-Hoặc sử dụng `pip`:
-```bash
-pip install -e .
-```
-
-### 4. Áp dụng Database Migrations (Alembic)
-Trước khi chạy ứng dụng lần đầu, bạn cần đồng bộ cấu trúc bảng vào cơ sở dữ liệu:
-```bash
-uv run alembic upgrade head
-```
-
-Nếu bạn thực hiện các thay đổi đối với model SQLAlchemy trong `app/infrastructure/persistence/models/`, hãy tự động tạo tệp migration mới bằng lệnh:
-```bash
-uv run alembic revision --autogenerate -m "Mô tả thay đổi"
-```
-
-### 5. Chạy Backend API
-Sử dụng `uv`:
-```bash
-uv run uvicorn app.main:app --reload
-```
-
-Tài liệu Swagger UI sẽ khả dụng tại: `http://localhost:8000/docs`
+Thư mục `backend/` đóng vai trò là **Tầng Delivery & Presentation** cùng hệ thống **Dependency Injection (Dishka Container)**, kết nối các Bounded Contexts trong `module/` và tiện ích nền tảng trong `core/` thành một ứng dụng web API hoàn chỉnh.
 
 ---
 
-## Hướng dẫn Chạy Kiểm thử (Tests)
+## 🏛️ Cấu Trúc Thư Mục
 
-Chạy bộ kiểm thử tự động (sử dụng SQLite in-memory tự động reset database sau mỗi test case):
+```text
+backend/
+├── di/                                 # [DISHKA DEPENDENCY INJECTION]
+│   ├── providers.py                    # Providers cấu hình Scope.APP & Scope.REQUEST
+│   │                                   # (DatabaseSessionProvider, AuthModuleProvider,
+│   │                                   #  UploadModuleProvider, VideoRagModuleProvider)
+│   └── setup.py                        # Hàm khởi tạo container (make_async_container)
+│
+├── presentation/                       # [PRESENTATION LAYER]
+│   ├── api/v1/                         # Các endpoints FastAPI
+│   │   ├── auth.py                     # POST /api/v1/auth/login, POST /api/v1/auth/register
+│   │   ├── me.py                       # GET /api/v1/me, PUT /api/v1/me
+│   │   ├── uploads.py                  # POST /api/v1/uploads/direct, POST /api/v1/uploads/presign
+│   │   ├── video_rag.py                # POST /api/v1/video-rag/generate-script, ingest, search
+│   │   ├── chat.py                     # POST /api/v1/chat/message, /history, /clear
+│   │   ├── health.py                   # GET /api/v1/health
+│   │   └── router.py                   # Router tổng hợp gắn tiền tố /api/v1
+│   ├── exception_handlers.py           # Global Exception Handlers (AppException, ValidationError)
+│   └── schemas/                        # Presentation DTOs & StandardResponse[T]
+│
+├── static/                             # Web Chatbot Client UI (HTML, CSS, JS)
+│   ├── index.html                      # Giao diện chat RAG tương tác trực tiếp
+│   ├── app.js                          # Xử lý gọi API /chat và /video-rag
+│   └── style.css                       # Giao diện tối ưu trải nghiệm người dùng
+│
+├── tests/                              # Integration tests cho tầng presentation (Auth & Uploads)
+├── main.py                             # ASGI application entrypoint & Dishka lifespan setup
+└── README.md                           # Tài liệu hướng dẫn này
+```
+
+---
+
+## 🚀 Hướng Dẫn Cài Đặt & Chạy Ứng Dụng
+
+### 1. Khởi động Cơ sở dữ liệu & Storage (Docker Compose)
+Tại thư mục gốc dự án, khởi chạy PostgreSQL và MinIO:
 ```bash
-uv run pytest
+docker compose up -d
+```
+* **PostgreSQL:** `100.84.187.107:5698` (hoặc cấu hình lại trong `.env`)
+* **MinIO Console:** `http://localhost:9001` (user: `miniouser`, pass: `miniopassword`)
+* **MinIO S3 API:** `http://localhost:9000`
+
+### 2. Cài đặt Thư Viện Python
+Dự án sử dụng môi trường ảo Python 3.11+:
+```bash
+# Sử dụng uv:
+uv sync
+
+# Hoặc pip:
+pip install -e .
+```
+
+### 3. Đồng bộ Database Migrations (Alembic)
+Áp dụng migrations mới nhất cho PostgreSQL:
+```bash
+alembic upgrade head
+```
+
+Tạo migration mới khi chỉnh sửa SQLAlchemy model trong `module/auth/infra/persistence/models/`:
+```bash
+alembic revision --autogenerate -m "Mô tả thay đổi"
+```
+
+### 4. Khởi Chạy Backend Server
+Khởi chạy ứng dụng với Uvicorn:
+```bash
+uvicorn backend.main:app --reload --port 8000
+```
+Hoặc chạy trực tiếp file entrypoint:
+```bash
+python main.py
+```
+
+### 5. Truy Cập Giao Diện
+* **Swagger API Documentation:** `http://localhost:8000/docs`
+* **Interactive Chat Client UI:** `http://localhost:8000/app` hoặc `http://localhost:8000/chat`
+* **Healthcheck:** `http://localhost:8000/api/v1/health`
+
+---
+
+## 🧪 Hướng Dẫn Chạy Kiểm Thử (Testing)
+
+Bộ kiểm thử tự động bao gồm cả Unit tests (Core/Domain) và Integration tests (Backend API):
+```bash
+pytest
+```
+Chạy chi tiết với log:
+```bash
+pytest -v -s
+```
+Chạy riêng integration tests của Backend:
+```bash
+pytest backend/tests/ -v
 ```

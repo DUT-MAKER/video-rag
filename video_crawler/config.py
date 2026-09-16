@@ -34,22 +34,11 @@ class CrawlerSettings(BaseSettings):
     minio_prefix: str = Field(
         default="video-crawler", validation_alias="CRAWLER_MINIO_PREFIX"
     )
-    ingest_url: str = Field(
-        default="http://api:8000/api/v1/internal/crawler/ingest",
-        validation_alias="CRAWLER_INGEST_URL",
-    )
-    internal_token: str = Field(default="", validation_alias="CRAWLER_INTERNAL_TOKEN")
-    whisper_model: str = Field(default="small", validation_alias="CRAWLER_WHISPER_MODEL")
-    whisper_device: str = Field(default="cpu", validation_alias="CRAWLER_WHISPER_DEVICE")
-    whisper_compute_type: str = Field(
-        default="int8", validation_alias="CRAWLER_WHISPER_COMPUTE_TYPE"
-    )
-    max_ingest_attempts: int = Field(
-        default=3, validation_alias="CRAWLER_MAX_INGEST_ATTEMPTS"
-    )
-
     def session_file(self, platform: str) -> Path:
         return self.session_dir / f"{platform}.json"
+
+    def browser_profile_dir(self, platform: str) -> Path:
+        return self.session_dir.parent / "profiles" / platform
 
 
 @lru_cache

@@ -1,8 +1,7 @@
 """Database engine and session factory configuration for Dishka."""
 
-from collections.abc import AsyncGenerator
-
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 from core.config import app_settings, db_settings
 
@@ -10,6 +9,8 @@ async_engine = create_async_engine(
     db_settings.url,
     echo=app_settings.debug,
     future=True,
+    poolclass=NullPool,
+    connect_args={"timeout": 5.0},
 )
 
 async_session_factory = async_sessionmaker(

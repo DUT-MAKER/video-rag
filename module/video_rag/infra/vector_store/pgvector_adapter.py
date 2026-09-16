@@ -2,10 +2,13 @@
 
 import json
 from typing import Any
+
+from loguru import logger
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from module.video_rag.domain.entities.reference_pattern import SimilarVideoContext
+from module.video_rag.domain.exceptions import VectorStoreError
 from module.video_rag.port.vector_store_port import IVectorStorePort
 
 
@@ -16,7 +19,7 @@ class PgVectorAdapter(IVectorStorePort):
         self,
         engine: AsyncEngine,
         table_name: str = "viral_video_embeddings",
-        dimension: int = 384,
+        dimension: int = 1024,
     ) -> None:
         self._engine = engine
         self._table_name = table_name
@@ -29,27 +32,31 @@ class PgVectorAdapter(IVectorStorePort):
         if self._table_initialized:
             return
 
-        async with self._engine.begin() as conn:
-            # Create extension
-            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
-            # Create table
-            create_table_sql = f"""
-            CREATE TABLE IF NOT EXISTS {self._table_name} (
-                id VARCHAR(64) PRIMARY KEY,
-                vector vector({self._dimension}),
-                metadata JSONB,
-                document TEXT
-            );
-            """
-            await conn.execute(text(create_table_sql))
-            # Create HNSW index for cosine distance
-            create_index_sql = f"""
-            CREATE INDEX IF NOT EXISTS {self._table_name}_hnsw_idx
-            ON {self._table_name} USING hnsw (vector vector_cosine_ops);
-            """
-            await conn.execute(text(create_index_sql))
+        try:
+            async with self._engine.begin() as conn:
+                # Create extension
+                await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+                # Create table
+                create_table_sql = f"""
+                CREATE TABLE IF NOT EXISTS {self._table_name} (
+                    id VARCHAR(64) PRIMARY KEY,
+                    vector vector({self._dimension}),
+                    metadata JSONB,
+                    document TEXT
+                );
+                """
+                await conn.execute(text(create_table_sql))
+                # Create HNSW index for cosine distance
+                create_index_sql = f"""
+                CREATE INDEX IF NOT EXISTS {self._table_name}_hnsw_idx
+                ON {self._table_name} USING hnsw (vector vector_cosine_ops);
+                """
+                await conn.execute(text(create_index_sql))
 
-        self._table_initialized = True
+            self._table_initialized = True
+        except Exception as exc:
+            logger.error(f"PgVectorAdapter failed to initialize database: {exc}")
+            raise VectorStoreError(f"Failed to initialize pgvector table: {exc}") from exc
 
     async def upsert(
         self,
@@ -79,31 +86,35 @@ class PgVectorAdapter(IVectorStorePort):
 
         await self.initialize()
 
-        async with self._sessionmaker() as session:
-            for i in range(len(ids)):
-                doc_id = ids[i]
-                vec = vectors[i]
-                meta = metadatas[i]
-                doc = documents[i]
+        try:
+            async with self._sessionmaker() as session:
+                for i in range(len(ids)):
+                    doc_id = ids[i]
+                    vec = vectors[i]
+                    meta = metadatas[i]
+                    doc = documents[i]
 
-                # Convert vector to string representation [0.1, 0.2, ...]
-                vec_str = "[" + ",".join(str(x) for x in vec) + "]"
-                meta_json = json.dumps(meta, ensure_ascii=False)
+                    # Convert vector to string representation [0.1, 0.2, ...]
+                    vec_str = "[" + ",".join(str(x) for x in vec) + "]"
+                    meta_json = json.dumps(meta, ensure_ascii=False)
 
-                upsert_query = f"""
-                INSERT INTO {self._table_name} (id, vector, metadata, document)
-                VALUES (:id, CAST(:vec AS vector), CAST(:meta AS jsonb), :doc)
-                ON CONFLICT (id) DO UPDATE SET
-                    vector = EXCLUDED.vector,
-                    metadata = EXCLUDED.metadata,
-                    document = EXCLUDED.document;
-                """
-                await session.execute(
-                    text(upsert_query),
-                    {"id": doc_id, "vec": vec_str, "meta": meta_json, "doc": doc},
-                )
+                    upsert_query = f"""
+                    INSERT INTO {self._table_name} (id, vector, metadata, document)
+                    VALUES (:id, CAST(:vec AS vector), CAST(:meta AS jsonb), :doc)
+                    ON CONFLICT (id) DO UPDATE SET
+                        vector = EXCLUDED.vector,
+                        metadata = EXCLUDED.metadata,
+                        document = EXCLUDED.document;
+                    """
+                    await session.execute(
+                        text(upsert_query),
+                        {"id": doc_id, "vec": vec_str, "meta": meta_json, "doc": doc},
+                    )
 
-            await session.commit()
+                await session.commit()
+        except Exception as exc:
+            logger.error(f"PgVectorAdapter upsert_batch failed: {exc}")
+            raise VectorStoreError(f"Failed to upsert batch into pgvector: {exc}") from exc
 
     async def search(
         self,
@@ -123,33 +134,42 @@ class PgVectorAdapter(IVectorStorePort):
         LIMIT :top_k;
         """
 
-        results: list[SimilarVideoContext] = []
-        async with self._sessionmaker() as session:
-            rows = await session.execute(
-                text(search_query),
-                {"vec": vec_str, "top_k": top_k},
-            )
-            for row in rows:
-                doc_id = str(row[0])
-                doc = str(row[1] or "")
-                meta = row[2] if isinstance(row[2], dict) else json.loads(row[2] or "{}")
-                similarity = round(float(row[3] or 0.0), 4)
-
-                results.append(
-                    SimilarVideoContext(
-                        id=doc_id,
-                        document=doc,
-                        metadata=meta,
-                        score=similarity,
-                    )
+        try:
+            results: list[SimilarVideoContext] = []
+            async with self._sessionmaker() as session:
+                rows = await session.execute(
+                    text(search_query),
+                    {"vec": vec_str, "top_k": top_k},
                 )
+                for row in rows:
+                    doc_id = str(row[0])
+                    doc = str(row[1] or "")
+                    meta = row[2] if isinstance(row[2], dict) else json.loads(row[2] or "{}")
+                    similarity = round(float(row[3] or 0.0), 4)
 
-        return results
+                    results.append(
+                        SimilarVideoContext(
+                            id=doc_id,
+                            document=doc,
+                            metadata=meta,
+                            score=similarity,
+                        )
+                    )
+
+            return results
+        except Exception as exc:
+            logger.error(f"PgVectorAdapter search failed: {exc}")
+            raise VectorStoreError(f"Failed to search pgvector: {exc}") from exc
 
     async def count(self) -> int:
         """Return total number of items in pgvector table."""
         await self.initialize()
-        count_query = f"SELECT COUNT(*) FROM {self._table_name};"
-        async with self._sessionmaker() as session:
-            result = await session.execute(text(count_query))
-            return int(result.scalar_one_or_none() or 0)
+
+        try:
+            count_query = f"SELECT COUNT(*) FROM {self._table_name};"
+            async with self._sessionmaker() as session:
+                result = await session.execute(text(count_query))
+                return int(result.scalar_one_or_none() or 0)
+        except Exception as exc:
+            logger.error(f"PgVectorAdapter count failed: {exc}")
+            raise VectorStoreError(f"Failed to count records in pgvector: {exc}") from exc

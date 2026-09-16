@@ -1,6 +1,4 @@
-"""Request DTOs for crawler administration and internal ingestion."""
-
-from typing import Any
+"""Request DTOs for crawler administration."""
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -31,23 +29,3 @@ class CreateCrawlJobDTO(BaseModel):
             source_urls=self.source_urls,
             max_items_per_platform=self.max_items_per_platform,
         )
-
-
-class CrawlerRagRecordDTO(BaseModel):
-    id: str
-    caption: str = Field(min_length=1)
-    hashtag: str = Field(min_length=1)
-    transcript: str = Field(min_length=1)
-    image_url: str = Field(min_length=1)
-    summary: str = Field(min_length=1)
-    video_url: str = Field(min_length=1)
-    platform: Platform
-    platform_video_id: str = Field(min_length=1)
-    canonical_url: str = Field(min_length=1)
-    metrics: dict[str, Any] = Field(default_factory=dict)
-    published_at: str = ""
-    provenance: dict[str, Any] = Field(default_factory=dict)
-
-
-class InternalCrawlerIngestDTO(BaseModel):
-    record: CrawlerRagRecordDTO

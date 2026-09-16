@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -108,9 +107,9 @@ class DiscoveredVideo:
 class MediaArtifact:
     video_path: str
     thumbnail_path: str | None
-    subtitle_paths: list[str]
     duration_seconds: float | None
     work_dir: str
+    metrics: dict[str, int | float] = field(default_factory=dict)
 
 
 @dataclass
@@ -120,38 +119,13 @@ class CrawledVideo:
     canonical_url: str
     caption: str
     hashtag: str
-    transcript: str
     image_url: str
-    summary: str
     video_url: str
     metrics: dict[str, int | float] = field(default_factory=dict)
     published_at: datetime | None = None
     provenance: dict[str, Any] = field(default_factory=dict)
     quality_warnings: list[str] = field(default_factory=list)
     id: UUID = field(default_factory=uuid4)
-
-    @property
-    def rag_id(self) -> str:
-        identity = self.platform_video_id or self.canonical_url
-        return hashlib.sha256(f"{self.platform.value}:{identity}".encode()).hexdigest()[:16]
-
-    def to_rag_record(self) -> dict[str, Any]:
-        return {
-            "id": self.rag_id,
-            "caption": self.caption,
-            "hashtag": self.hashtag,
-            "transcript": self.transcript,
-            "image_url": self.image_url,
-            "summary": self.summary,
-            "video_url": self.video_url,
-            "platform": self.platform.value,
-            "platform_video_id": self.platform_video_id,
-            "canonical_url": self.canonical_url,
-            "metrics": self.metrics,
-            "published_at": self.published_at.isoformat() if self.published_at else "",
-            "provenance": self.provenance,
-        }
-
 
 @dataclass
 class LeasedJob:

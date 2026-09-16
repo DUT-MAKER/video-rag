@@ -30,8 +30,6 @@ def upgrade() -> None:
         sa.Column("discovered_count", sa.Integer(), server_default="0", nullable=False),
         sa.Column("accepted_count", sa.Integer(), server_default="0", nullable=False),
         sa.Column("rejected_count", sa.Integer(), server_default="0", nullable=False),
-        sa.Column("indexed_count", sa.Integer(), server_default="0", nullable=False),
-        sa.Column("ingest_failed_count", sa.Integer(), server_default="0", nullable=False),
         sa.Column(
             "rejection_reasons",
             postgresql.JSONB(astext_type=sa.Text()),
@@ -57,9 +55,7 @@ def upgrade() -> None:
         sa.Column("canonical_url", sa.Text(), nullable=False),
         sa.Column("caption", sa.Text(), nullable=False),
         sa.Column("hashtag", sa.Text(), nullable=False),
-        sa.Column("transcript", sa.Text(), nullable=False),
         sa.Column("image_url", sa.Text(), nullable=False),
-        sa.Column("summary", sa.Text(), nullable=False),
         sa.Column("video_url", sa.Text(), nullable=False),
         sa.Column(
             "metrics",
@@ -80,10 +76,6 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("published_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("indexed_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("ingest_error", sa.Text(), nullable=True),
-        sa.Column("ingest_attempts", sa.Integer(), server_default="0", nullable=False),
-        sa.Column("next_ingest_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(["job_id"], [f"{SCHEMA}.crawl_jobs.id"], ondelete="CASCADE"),
@@ -93,7 +85,6 @@ def upgrade() -> None:
         schema=SCHEMA,
     )
     op.create_index("ix_crawler_videos_job_id", "videos", ["job_id"], schema=SCHEMA)
-    op.create_index("ix_crawler_videos_indexed_at", "videos", ["indexed_at"], schema=SCHEMA)
 
 
 def downgrade() -> None:

@@ -1,6 +1,5 @@
 """SelfHostedLLMAdapter implementation."""
 
-import asyncio
 import json
 import re
 from collections.abc import AsyncIterator
@@ -9,7 +8,6 @@ import httpx
 
 from module.video_rag.domain.entities.chat_message import ChatMessage
 from module.video_rag.domain.entities.reference_pattern import (
-    ReferencedPattern,
     SimilarVideoContext,
 )
 from module.video_rag.domain.entities.viral_script import (
@@ -19,6 +17,7 @@ from module.video_rag.domain.entities.viral_script import (
     ViralScript,
 )
 from module.video_rag.domain.exceptions import ScriptGenerationError
+from module.video_rag.domain.value_objects.chat_intent import ChatIntent
 from module.video_rag.domain.value_objects.hook_type import HookType
 from module.video_rag.domain.value_objects.platform_target import PlatformTarget
 from module.video_rag.port.llm_port import ILLMPort
@@ -35,7 +34,6 @@ class SelfHostedLLMAdapter(ILLMPort):
         temperature: float = 0.7,
         max_tokens: int = 2048,
         timeout: float = 60.0,
-        fallback_mode: bool = True,
     ) -> None:
         self._api_base_url = api_base_url.rstrip("/")
         self._api_key = api_key
@@ -43,7 +41,6 @@ class SelfHostedLLMAdapter(ILLMPort):
         self._temperature = temperature
         self._max_tokens = max_tokens
         self._timeout = timeout
-        self._fallback_mode = fallback_mode
 
     def _build_system_prompt(self) -> str:
         return """You are a World-Class Director and Viral Short-Form Video Scriptwriter (TikTok, Reels, Shorts).
@@ -170,136 +167,6 @@ Quality Guidelines:
             suggested_hashtags=data.get("suggested_hashtags", ["#viral", "#trending", f"#{platform.value}"]),
         )
 
-    def _generate_fallback_script(
-        self,
-        topic: str,
-        target_audience: str,
-        duration_seconds: int,
-        platform: PlatformTarget,
-        hook_style: str | None,
-        reference_contexts: list[SimilarVideoContext],
-    ) -> ViralScript:
-        """High-structure fallback viral script generator for local testing and offline execution."""
-        ref_title = reference_contexts[0].caption if reference_contexts else "Smart Strategic Framework"
-        ref_hook = (
-            reference_contexts[0].hook_candidate
-            if reference_contexts
-            else "90% of people make this critical mistake..."
-        )
-
-        hook_text = f"Stop dealing with '{topic}' the traditional way! {ref_hook}"
-
-        scenes = [
-            Scene(
-                scene_number=1,
-                time_range="00:00 - 00:04",
-                narration=hook_text[:120],
-                visual_action="Close-up of a shocked face, bold neon warning text flashes across the screen.",
-                image_prompt=(
-                    f"Close-up dramatic face expressing shock, neon red alert typography about '{topic}', "
-                    "cinematic lighting, 8k photorealistic, hyper-detailed, depth of field."
-                ),
-                video_prompt=(
-                    "Slow zoom in on character with shocked expression, rapid camera shake, 4k cinematic motion, 60fps."
-                ),
-                audio_sfx_cue="Loud whoosh sound followed by deep bass drop.",
-            ),
-            Scene(
-                scene_number=2,
-                time_range="00:04 - 00:15",
-                narration=(
-                    f"Most people approach {topic} focusing on vanity metrics, wasting months "
-                    "without meaningful progress."
-                ),
-                visual_action="Character looking stressed at desk, dynamic cut transition to falling analytics charts.",
-                image_prompt=(
-                    "Frustrated creator sitting in front of glowing laptop screens with falling trend charts, "
-                    "moody cyberpunk office, photorealistic."
-                ),
-                video_prompt=(
-                    "Pan from cluttered desk to frustrated person, dynamic glitch transition, cinematic film grain."
-                ),
-                audio_sfx_cue="Subtle clock ticking speeding up.",
-            ),
-            Scene(
-                scene_number=3,
-                time_range="00:15 - 00:30",
-                narration=(
-                    f"Here is the 3-step proven formula: First, eliminate friction. "
-                    f"Second, adopt the benchmark model: '{ref_title}'. Third, compound daily."
-                ),
-                visual_action=(
-                    "3D floating holographic checklist illuminates the frame, character confidently takes action."
-                ),
-                image_prompt=(
-                    "Futuristic holographic 3-step checklist floating in air, glowing cyan and gold light, "
-                    "sleek modern minimalist studio background, 8k."
-                ),
-                video_prompt="Smooth 3D orbit around floating glowing checklist, sleek motion blur.",
-                audio_sfx_cue="Upbeat synth-wave background music kicking in, crisp ding sound on each step.",
-            ),
-            Scene(
-                scene_number=4,
-                time_range="00:30 - 00:45",
-                narration=(
-                    "Apply this starting today and experience exponential results within 7 days. "
-                    "What is your take? Drop a comment below!"
-                ),
-                visual_action=(
-                    "Creator smiles confidently, points down toward the comment section as the save icon glows."
-                ),
-                image_prompt=(
-                    "Confident friendly person smiling at camera, modern creator studio with soft ambient ring light, "
-                    "bokeh background, photorealistic."
-                ),
-                video_prompt="Medium shot of creator gesturing towards bottom comments, smooth push in, warm lighting.",
-                audio_sfx_cue="Positive chime sound effect.",
-            ),
-        ]
-
-        hook = Hook(
-            hook_type=HookType.CONTRARIAN if not hook_style else HookType.from_str(hook_style),
-            script=hook_text[:140],
-            visual_action="High-contrast typography over dark background, snap zoom into eyes.",
-            retention_rationale=(
-                "Leverages loss aversion and directly challenges conventional assumptions, "
-                "forcing viewers to stop scrolling."
-            ),
-            duration_seconds=4,
-        )
-
-        cta = CallToAction(
-            script="Save this video for later and comment your thoughts below!",
-            visual_cue="Pulsing bookmark and share icon animation.",
-        )
-
-        return ViralScript(
-            title=f"The Viral Blueprint for {topic}",
-            target_niche=target_audience,
-            platform=platform,
-            target_duration_seconds=duration_seconds,
-            hook=hook,
-            scenes=scenes,
-            call_to_action=cta,
-            references=[
-                ReferencedPattern(
-                    original_caption=ctx.caption,
-                    matched_hook=ctx.hook_candidate,
-                    minio_video_url=ctx.video_url,
-                    similarity_score=ctx.score,
-                    summary=ctx.summary,
-                    image_url=ctx.image_url,
-                )
-                for ctx in reference_contexts
-            ],
-            suggested_hashtags=[
-                "#viral",
-                "#trending",
-                f"#{platform.value}",
-                f"#{re.sub(r'[^a-zA-Z0-9_]', '', topic.lower())[:15]}",
-            ],
-        )
-
     async def generate_script(
         self,
         topic: str,
@@ -309,7 +176,7 @@ Quality Guidelines:
         hook_style: str | None,
         reference_contexts: list[SimilarVideoContext],
     ) -> ViralScript:
-        """Submit prompt to LLM or generate structured fallback if offline."""
+        """Submit prompt to LLM to generate structured viral video script."""
         system_prompt = self._build_system_prompt()
         user_prompt = self._build_user_prompt(
             topic=topic,
@@ -343,20 +210,12 @@ Quality Guidelines:
                     res_data = response.json()
                     raw_content = res_data["choices"][0]["message"]["content"]
                     return self._parse_llm_json(raw_content, platform, duration_seconds)
-        except Exception as err:
-            if not self._fallback_mode:
-                raise ScriptGenerationError(
-                    "Unable to connect to Self-hosted LLM API and fallback_mode is disabled."
-                ) from err
 
-        return self._generate_fallback_script(
-            topic=topic,
-            target_audience=target_audience,
-            duration_seconds=duration_seconds,
-            platform=platform,
-            hook_style=hook_style,
-            reference_contexts=reference_contexts,
-        )
+                raise ScriptGenerationError(f"LLM API returned HTTP {response.status_code}: {response.text}")
+        except Exception as err:
+            if isinstance(err, ScriptGenerationError):
+                raise
+            raise ScriptGenerationError(f"Unable to connect to Self-hosted LLM API: {err}") from err
 
     def _build_chat_system_prompt(
         self,
@@ -386,39 +245,6 @@ Quality Guidelines:
                 )
             prompt += "\nIncorporate structural rhythm and retention techniques from these proven patterns."
         return prompt
-
-    async def _stream_fallback_chat(
-        self,
-        messages: list[ChatMessage],
-        reference_contexts: list[SimilarVideoContext],
-    ) -> AsyncIterator[str]:
-        """Generate structured contextual streaming response when LLM server is offline."""
-        last_query = messages[-1].content if messages else "video strategy"
-        ref_hook = (
-            reference_contexts[0].hook_candidate
-            if reference_contexts
-            else "90% of creators make this fatal mistake in the first 3 seconds..."
-        )
-        ref_caption = reference_contexts[0].caption if reference_contexts else "High-Retention Benchmark Video"
-
-        response_text = (
-            f"Here is a viral co-pilot strategy crafted for: **{last_query}**\n\n"
-            "### 1. High-CTR Hook Options (First 3s):\n"
-            f'- **Option A (Benchmark-derived):** "{ref_hook}"\n'
-            f'- **Option B (Contrarian):** "Stop doing {last_query[:40]} the traditional way."\n'
-            '- **Option C (Curiosity Gap):** "The secret framework top creators use to 10x retention in 7 days."\n\n'
-            "### 2. Benchmark Inspiration:\n"
-            f"Grounding insights in *{ref_caption}*: Keep transitions under 4 seconds per shot, "
-            "introduce visual movement immediately, and pair on-screen captions with dynamic sound effects.\n\n"
-            "### 3. Recommended Next Steps:\n"
-            "- Would you like me to generate a complete 45-second script with camera directions?\n"
-            "- Or generate Flux / Midjourney prompts for each scene?"
-        )
-
-        tokens = response_text.split(" ")
-        for i, token in enumerate(tokens):
-            yield token + (" " if i < len(tokens) - 1 else "")
-            await asyncio.sleep(0.005)
 
     async def stream_chat(
         self,
@@ -465,11 +291,56 @@ Quality Guidelines:
                             except Exception:
                                 continue
                         return
-        except Exception as err:
-            if not self._fallback_mode:
-                raise ScriptGenerationError(
-                    "Unable to stream from Self-hosted LLM API and fallback_mode is disabled."
-                ) from err
 
-        async for token in self._stream_fallback_chat(messages, reference_contexts):
-            yield token
+                    raise ScriptGenerationError(f"LLM streaming service returned HTTP {response.status_code}")
+        except Exception as err:
+            if isinstance(err, ScriptGenerationError):
+                raise
+            raise ScriptGenerationError(f"Unable to stream from Self-hosted LLM API: {err}") from err
+
+    async def classify_intent(self, message: str) -> ChatIntent:
+        """Classify user query intent into ChatIntent using LLM with structured format."""
+        system_prompt = (
+            "You are an Intent Classifier for an AI Viral Video Creation Assistant.\n"
+            "Classify the user's message into EXACTLY one of two intents:\n"
+            "- 'generate_script': The user is asking to create, brainstorm, structure, rewrite, "
+            "edit, or get ideas/prompts for a video, script, hook, scene, or viral content.\n"
+            "- 'general_chat': Casual conversation, greetings, general questions, "
+            "chitchat, or topics unrelated to creating video scripts.\n\n"
+            "Respond ONLY with a JSON object in this format:\n"
+            '{"intent": "generate_script"} or {"intent": "general_chat"}'
+        )
+        url = f"{self._api_base_url}/chat/completions"
+        headers = {"Content-Type": "application/json"}
+        if self._api_key:
+            headers["Authorization"] = f"Bearer {self._api_key}"
+
+        payload = {
+            "model": self._model_name,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": message},
+            ],
+            "temperature": 0.0,
+            "max_tokens": 2048,
+            "response_format": {"type": "json_object"},
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=min(self._timeout, 10.0)) as client:
+                response = await client.post(url, json=payload, headers=headers)
+                if response.status_code == 200:
+                    res_data = response.json()
+                    content = res_data["choices"][0]["message"]["content"]
+                    parsed = json.loads(content)
+                    raw_intent = str(parsed.get("intent", "")).strip().lower()
+                    if raw_intent == "generate_script":
+                        return ChatIntent.GENERATE_SCRIPT
+                    return ChatIntent.GENERAL_CHAT
+                raise ScriptGenerationError(
+                    f"LLM classify_intent returned HTTP {response.status_code}: {response.text}"
+                )
+        except Exception as err:
+            if isinstance(err, ScriptGenerationError):
+                raise
+            raise ScriptGenerationError(f"Unable to classify intent via LLM: {err}") from err

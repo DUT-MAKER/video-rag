@@ -11,3 +11,6 @@ video_crawler/var/secrets/*
 video_crawler/var/secrets/sessions/*
 !video_crawler/var/secrets/sessions/.gitkeep
 data/crawler-work/
+
+.agents/
+.agent/

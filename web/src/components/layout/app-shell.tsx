@@ -1,43 +1,82 @@
-import Link from "next/link";
-import { LayoutDashboard, Settings } from "lucide-react";
+"use client";
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+
+interface AppShellProps {
+  children: React.ReactNode;
+}
+
+const navItems = [
+  { href: "/dashboard", label: "Studio" },
+  { href: "/dashboard/generator", label: "1-Click Generator" },
+  { href: "/dashboard/benchmarks", label: "Kho Video Mẫu" },
+  { href: "/dashboard/ingest", label: "Nạp Dữ Liệu" },
+];
+
+export function AppShell({ children }: AppShellProps) {
+  const pathname = usePathname();
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-slate-200 bg-white px-4 py-5 md:block">
-        <Link
-          href="/dashboard"
-          className="block text-lg font-semibold text-slate-950"
-        >
-          Project Boilerplate
-        </Link>
-        <nav className="mt-8 space-y-1">
+    <div className="bg-background text-foreground selection:bg-accent/30 flex min-h-screen flex-col antialiased selection:text-white">
+      {/* Top Universal App Navigation Bar */}
+      <header className="border-border bg-background/95 sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between border-b px-4 backdrop-blur-md md:px-6">
+        {/* Left: Brand Logo & Navigation */}
+        <div className="flex items-center space-x-6">
           <Link
             href="/dashboard"
-            className="flex items-center gap-3 rounded-md bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700"
+            className="group flex items-center space-x-2.5"
           >
-            <LayoutDashboard size={18} />
-            Dashboard
+            <div className="bg-accent text-background flex h-6 w-6 items-center justify-center rounded-lg text-xs font-semibold tracking-tighter">
+              VC
+            </div>
+            <span className="text-foreground text-sm font-semibold tracking-tight">
+              ViralCopilot
+            </span>
           </Link>
-          <button className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-slate-600 hover:bg-slate-100">
-            <Settings size={18} />
-            Settings
-          </button>
-        </nav>
-      </aside>
-      <div className="md:pl-64">
-        <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 px-6 py-4 backdrop-blur">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-slate-600">
-              Frontend Boilerplate
-            </p>
-            <Link href="/" className="text-sm font-medium text-blue-700">
-              Home
-            </Link>
+
+          {/* Clean Typography-first Navigation */}
+          <nav className="hidden items-center space-x-1 md:flex">
+            {navItems.map((item) => {
+              const isActive =
+                item.href === "/dashboard"
+                  ? pathname === "/dashboard"
+                  : pathname.startsWith(item.href);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "select-none rounded-md px-3 py-1.5 text-xs font-medium transition-all",
+                    isActive
+                      ? "bg-surface text-foreground border-border border font-semibold"
+                      : "text-muted-foreground hover:text-foreground hover:bg-surface/60"
+                  )}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* Right: Profile */}
+        <div className="flex items-center space-x-2">
+          <div className="bg-surface border-border text-foreground flex h-7 w-7 items-center justify-center rounded-full border font-mono text-xs font-medium">
+            VC
           </div>
-        </header>
-        <main className="px-6 py-6">{children}</main>
-      </div>
+          <span className="text-foreground hidden text-xs font-medium sm:inline">
+            Creator Studio
+          </span>
+        </div>
+      </header>
+
+      {/* Main Page Content */}
+      <main className="bg-background flex flex-1 flex-col overflow-hidden">
+        {children}
+      </main>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import uuid
 from pathlib import Path
+
 from pydantic import BaseModel
 
 from core.config import s3_settings
@@ -17,6 +18,14 @@ class PresignUploadOutputDTO(BaseModel):
     public_url: str
     expires_in_seconds: int = 3600
 
+    @property
+    def presigned_url(self) -> str:
+        return self.upload_url
+
+    @property
+    def key(self) -> str:
+        return self.object_key
+
 
 class PresignUploadUseCase:
     """Use case to generate a presigned S3 upload URL."""
@@ -26,28 +35,19 @@ class PresignUploadUseCase:
 
     async def execute(
         self,
-        filename: str,
+        filename: str | None = None,
+        key: str | None = None,
         content_type: str = "application/octet-stream",
         prefix: str = "uploads",
     ) -> PresignUploadOutputDTO:
-        if not filename:
-            raise BadRequestException("Filename is required")
+        if not filename and not key:
+            raise BadRequestException("Filename or key is required")
 
-        if (
-            not s3_settings.access_key
-            or not s3_settings.secret_key
-            or not s3_settings.endpoint
-        ):
-            # Development fallback
-            return PresignUploadOutputDTO(
-                upload_url=f"http://localhost:8000/api/v1/uploads?filename={filename}",
-                object_key=f"{prefix}/{filename}",
-                public_url=f"http://localhost:8000/static/uploads/{filename}",
-                expires_in_seconds=3600,
-            )
-
-        file_ext = Path(filename).suffix
-        safe_key = f"{prefix}/{uuid.uuid4().hex}{file_ext}"
+        if key:
+            safe_key = key
+        else:
+            file_ext = Path(filename).suffix if filename else ""
+            safe_key = f"{prefix}/{uuid.uuid4().hex}{file_ext}"
 
         upload_url = self._s3_client.generate_presigned_upload_url(
             bucket=s3_settings.bucket_name,

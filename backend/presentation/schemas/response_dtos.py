@@ -1,6 +1,7 @@
 """Standard API Response DTOs."""
 
 from typing import Generic, TypeVar
+
 from pydantic import BaseModel
 
 from module.video_rag.domain.value_objects.hook_type import HookType

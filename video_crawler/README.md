@@ -1,9 +1,10 @@
 # Video Crawler
 
-This package discovers and enriches public Facebook, TikTok, and YouTube videos
-for the RAG knowledge store. The API creates jobs in the shared PostgreSQL
-database; a dedicated worker performs browser discovery, media storage,
-transcription, filtering, and internal RAG ingestion.
+This package discovers public Facebook, TikTok, and YouTube videos. The API
+creates jobs in the shared PostgreSQL database; a dedicated worker downloads
+video and thumbnail artifacts, stores them in the configured S3/MinIO bucket,
+and persists crawler metadata. It does not run transcription, LLM enrichment,
+embedding, or RAG ingestion.
 
 ## Safety
 

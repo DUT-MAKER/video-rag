@@ -6,6 +6,7 @@ import asyncio
 import json
 import os
 import secrets
+from contextlib import suppress
 from pathlib import Path
 
 from playwright.async_api import BrowserContext, async_playwright
@@ -23,6 +24,11 @@ AUTH_COOKIES = {
     Platform.TIKTOK: {"sessionid", "sessionid_ss"},
     Platform.YOUTUBE: {"SAPISID", "__Secure-3PAPISID"},
 }
+COOKIE_DOMAINS = {
+    Platform.FACEBOOK: ".facebook.com",
+    Platform.TIKTOK: ".tiktok.com",
+    Platform.YOUTUBE: ".youtube.com",
+}
 
 
 class SessionManager:
@@ -39,25 +45,72 @@ class SessionManager:
         }
 
     async def login(self, platform: Platform) -> Path:
+        profile_dir = self.settings.browser_profile_dir(platform.value)
+        profile_dir.mkdir(parents=True, exist_ok=True)
         async with async_playwright() as playwright:
-            browser = await playwright.chromium.launch(headless=False)
-            context = await browser.new_context()
-            page = await context.new_page()
-            await page.goto(LOGIN_URLS[platform], wait_until="domcontentloaded")
-            await asyncio.to_thread(input, "Complete login in the browser, then press Enter here: ")
-            await self._save(platform, context)
-            await context.close()
-            await browser.close()
+            context = await playwright.chromium.launch_persistent_context(
+                user_data_dir=str(profile_dir),
+                channel="chrome",
+                headless=False,
+                no_viewport=True,
+                args=["--start-maximized"],
+            )
+            try:
+                page = context.pages[0] if context.pages else await context.new_page()
+                await page.goto(LOGIN_URLS[platform], wait_until="domcontentloaded")
+                await asyncio.to_thread(
+                    input,
+                    "Complete login in Chrome, then press Enter here: ",
+                )
+                await self._save(platform, context)
+            finally:
+                with suppress(Exception):
+                    await context.close()
         return self.settings.session_file(platform.value)
+
+    def import_cookie_header(self, platform: Platform, source: Path) -> Path:
+        raw_header = source.read_text(encoding="utf-8").strip()
+        if raw_header.casefold().startswith("cookie:"):
+            raw_header = raw_header.split(":", 1)[1].strip()
+        cookies: list[dict[str, object]] = []
+        for item in raw_header.split(";"):
+            name, separator, value = item.strip().partition("=")
+            if not separator or not name or not value:
+                continue
+            cookies.append(
+                {
+                    "name": name,
+                    "value": value,
+                    "domain": COOKIE_DOMAINS[platform],
+                    "path": "/",
+                    "expires": -1,
+                    "httpOnly": name in AUTH_COOKIES[platform],
+                    "secure": True,
+                    "sameSite": "Lax",
+                }
+            )
+        self._validate_auth_cookies(platform, cookies)
+        return self._write_state(platform, {"cookies": cookies, "origins": []})
 
     async def _save(self, platform: Platform, context: BrowserContext) -> None:
         payload = await context.storage_state()
-        names = {str(cookie.get("name")) for cookie in payload.get("cookies", [])}
+        self._validate_auth_cookies(platform, payload.get("cookies", []))
+        self._write_state(platform, payload)
+
+    @staticmethod
+    def _validate_auth_cookies(
+        platform: Platform,
+        cookies: list[dict[str, object]],
+    ) -> None:
+        names = {str(cookie.get("name")) for cookie in cookies}
         if not names.intersection(AUTH_COOKIES[platform]):
             raise RuntimeError(f"Login was not detected for {platform.value}")
+
+    def _write_state(self, platform: Platform, payload: dict[str, object]) -> Path:
         path = self.settings.session_file(platform.value)
         path.parent.mkdir(parents=True, exist_ok=True)
         temporary = path.with_name(f".{path.name}.{secrets.token_hex(6)}.tmp")
         temporary.write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
         temporary.chmod(0o600)
         os.replace(temporary, path)
+        return path

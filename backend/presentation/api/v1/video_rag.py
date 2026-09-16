@@ -43,9 +43,7 @@ async def ingest_video_data(
     elif payload.file_path is not None:
         result = await use_case.execute(source=payload.file_path)
     else:
-        raise DomainValidationError(
-            "Either 'file_path' or 'records' must be provided in request body."
-        )
+        raise DomainValidationError("Either 'file_path' or 'records' must be provided in request body.")
 
     return StandardResponse(
         success=True,
@@ -64,6 +62,12 @@ async def ingest_video_data(
     response_model=StandardResponse[list[SearchPatternItem]],
     status_code=status.HTTP_200_OK,
     summary="Semantic similarity search over benchmark viral patterns",
+)
+@router.post(
+    "/search-patterns",
+    response_model=StandardResponse[list[SearchPatternItem]],
+    status_code=status.HTTP_200_OK,
+    include_in_schema=False,
 )
 @inject
 async def search_viral_patterns(
@@ -98,6 +102,12 @@ async def search_viral_patterns(
     response_model=StandardResponse[ViralScriptResponseDTO],
     status_code=status.HTTP_200_OK,
     summary="Generate complete production-ready viral short-form video script with RAG",
+)
+@router.post(
+    "/generate-script",
+    response_model=StandardResponse[ViralScriptResponseDTO],
+    status_code=status.HTTP_200_OK,
+    include_in_schema=False,
 )
 @inject
 async def generate_viral_script(
