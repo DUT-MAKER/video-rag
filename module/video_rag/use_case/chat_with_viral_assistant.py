@@ -111,28 +111,35 @@ class ChatWithViralAssistantUseCase:
             candidates = await self._vector_store.search(query_vector=query_vector, top_k=fetch_k)
 
             if self._rerank and candidates:
-                candidate_docs = [
-                    f"Caption: {ctx.caption}\nHook: {ctx.hook_candidate}\nSummary: {ctx.summary}\n{ctx.document}"
-                    for ctx in candidates
-                ]
-                ranked_items = await self._rerank.rerank(
-                    query=query,
-                    documents=candidate_docs,
-                    top_n=top_k,
-                )
-                reranked_contexts: list[SimilarVideoContext] = []
-                for item in ranked_items:
-                    if 0 <= item.index < len(candidates):
-                        orig = candidates[item.index]
-                        reranked_contexts.append(
-                            SimilarVideoContext(
-                                id=orig.id,
-                                document=orig.document,
-                                metadata=orig.metadata,
-                                score=item.score,
+                try:
+                    candidate_docs = [
+                        f"Caption: {ctx.caption}\nHook: {ctx.hook_candidate}\nSummary: {ctx.summary}\n{ctx.document}"
+                        for ctx in candidates
+                    ]
+                    ranked_items = await self._rerank.rerank(
+                        query=query,
+                        documents=candidate_docs,
+                        top_n=top_k,
+                    )
+                    reranked_contexts: list[SimilarVideoContext] = []
+                    for item in ranked_items:
+                        if 0 <= item.index < len(candidates):
+                            orig = candidates[item.index]
+                            reranked_contexts.append(
+                                SimilarVideoContext(
+                                    id=orig.id,
+                                    document=orig.document,
+                                    metadata=orig.metadata,
+                                    score=item.score,
+                                )
                             )
-                        )
-                return reranked_contexts or candidates[:top_k]
+                    return reranked_contexts or candidates[:top_k]
+                except Exception as rerank_err:
+                    logger.warning(
+                        "Reranking in chat failed (%s). Falling back to top vector search candidates.",
+                        rerank_err,
+                    )
+                    return candidates[:top_k]
 
             return candidates[:top_k]
         except Exception:
