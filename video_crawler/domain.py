@@ -1,0 +1,177 @@
+"""Framework-free crawler domain types."""
+
+from __future__ import annotations
+
+import hashlib
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from enum import StrEnum
+from typing import Any
+from urllib.parse import urlparse
+from uuid import UUID, uuid4
+
+
+class Platform(StrEnum):
+    FACEBOOK = "facebook"
+    TIKTOK = "tiktok"
+    YOUTUBE = "youtube"
+
+
+class DiscoveryMethod(StrEnum):
+    KEYWORD = "keyword"
+    HASHTAG = "hashtag"
+    CREATOR = "creator"
+    SOURCE_URL = "source_url"
+
+
+class JobStatus(StrEnum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    PARTIAL = "partial"
+    FAILED = "failed"
+
+
+@dataclass(frozen=True)
+class CrawlJobRequest:
+    platforms: tuple[Platform, ...]
+    discovery_method: DiscoveryMethod
+    query: str = ""
+    platform_queries: dict[Platform, str] = field(default_factory=dict)
+    creators: dict[Platform, str] = field(default_factory=dict)
+    source_urls: dict[Platform, str] = field(default_factory=dict)
+    max_items_per_platform: int = 20
+
+    def __post_init__(self) -> None:
+        if not self.platforms:
+            raise ValueError("At least one platform is required")
+        if not 1 <= self.max_items_per_platform <= 100:
+            raise ValueError("max_items_per_platform must be between 1 and 100")
+        if len(set(self.platforms)) != len(self.platforms):
+            raise ValueError("Duplicate platforms are not allowed")
+        for platform in self.platforms:
+            if self.discovery_method is DiscoveryMethod.SOURCE_URL:
+                if not self.source_urls.get(platform):
+                    raise ValueError(f"Missing source URL for {platform.value}")
+                _validate_source_url(platform, self.source_urls[platform])
+            elif self.discovery_method is DiscoveryMethod.CREATOR:
+                if not self.creators.get(platform):
+                    raise ValueError(f"Missing creator for {platform.value}")
+            elif not self.platform_queries.get(platform, self.query).strip():
+                raise ValueError(f"Missing query for {platform.value}")
+
+    def value_for(self, platform: Platform) -> str:
+        if self.discovery_method is DiscoveryMethod.SOURCE_URL:
+            return self.source_urls[platform]
+        if self.discovery_method is DiscoveryMethod.CREATOR:
+            return self.creators[platform]
+        return self.platform_queries.get(platform, self.query)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "platforms": [item.value for item in self.platforms],
+            "discovery_method": self.discovery_method.value,
+            "query": self.query,
+            "platform_queries": {key.value: value for key, value in self.platform_queries.items()},
+            "creators": {key.value: value for key, value in self.creators.items()},
+            "source_urls": {key.value: value for key, value in self.source_urls.items()},
+            "max_items_per_platform": self.max_items_per_platform,
+        }
+
+    @classmethod
+    def from_dict(cls, value: dict[str, Any]) -> "CrawlJobRequest":
+        return cls(
+            platforms=tuple(Platform(item) for item in value["platforms"]),
+            discovery_method=DiscoveryMethod(value["discovery_method"]),
+            query=str(value.get("query") or ""),
+            platform_queries={Platform(k): str(v) for k, v in value.get("platform_queries", {}).items()},
+            creators={Platform(k): str(v) for k, v in value.get("creators", {}).items()},
+            source_urls={Platform(k): str(v) for k, v in value.get("source_urls", {}).items()},
+            max_items_per_platform=int(value.get("max_items_per_platform", 20)),
+        )
+
+
+@dataclass
+class DiscoveredVideo:
+    platform: Platform
+    platform_video_id: str
+    canonical_url: str
+    caption: str
+    hashtags: list[str] = field(default_factory=list)
+    thumbnail_url: str = ""
+    metrics: dict[str, int | float] = field(default_factory=dict)
+    published_at: datetime | None = None
+    warnings: list[str] = field(default_factory=list)
+
+
+@dataclass
+class MediaArtifact:
+    video_path: str
+    thumbnail_path: str | None
+    subtitle_paths: list[str]
+    duration_seconds: float | None
+    work_dir: str
+
+
+@dataclass
+class CrawledVideo:
+    platform: Platform
+    platform_video_id: str
+    canonical_url: str
+    caption: str
+    hashtag: str
+    transcript: str
+    image_url: str
+    summary: str
+    video_url: str
+    metrics: dict[str, int | float] = field(default_factory=dict)
+    published_at: datetime | None = None
+    provenance: dict[str, Any] = field(default_factory=dict)
+    quality_warnings: list[str] = field(default_factory=list)
+    id: UUID = field(default_factory=uuid4)
+
+    @property
+    def rag_id(self) -> str:
+        identity = self.platform_video_id or self.canonical_url
+        return hashlib.sha256(f"{self.platform.value}:{identity}".encode()).hexdigest()[:16]
+
+    def to_rag_record(self) -> dict[str, Any]:
+        return {
+            "id": self.rag_id,
+            "caption": self.caption,
+            "hashtag": self.hashtag,
+            "transcript": self.transcript,
+            "image_url": self.image_url,
+            "summary": self.summary,
+            "video_url": self.video_url,
+            "platform": self.platform.value,
+            "platform_video_id": self.platform_video_id,
+            "canonical_url": self.canonical_url,
+            "metrics": self.metrics,
+            "published_at": self.published_at.isoformat() if self.published_at else "",
+            "provenance": self.provenance,
+        }
+
+
+@dataclass
+class LeasedJob:
+    id: UUID
+    request: CrawlJobRequest
+
+
+def utc_now() -> datetime:
+    return datetime.now(UTC)
+
+
+def _validate_source_url(platform: Platform, value: str) -> None:
+    parsed = urlparse(value)
+    host = (parsed.hostname or "").lower()
+    allowed = {
+        Platform.FACEBOOK: ("facebook.com", "fb.watch"),
+        Platform.TIKTOK: ("tiktok.com",),
+        Platform.YOUTUBE: ("youtube.com", "youtu.be"),
+    }[platform]
+    if parsed.scheme not in {"http", "https"} or not any(
+        host == domain or host.endswith(f".{domain}") for domain in allowed
+    ):
+        raise ValueError(f"Invalid {platform.value} source URL")

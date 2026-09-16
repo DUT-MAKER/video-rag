@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.di.setup import setup_di
+from backend.presentation.api.v1.crawler import router as crawler_router
 from backend.presentation.api.v1.router import api_v1_router
 from core.config import app_settings
 from core.exceptions import AppException
@@ -68,6 +69,7 @@ def create_app() -> FastAPI:
 
     # Mount API v1 Routes
     app.include_router(api_v1_router, prefix="/api/v1")
+    app.include_router(crawler_router, prefix="/api/v1")
 
     # Mount Frontend Static UI
     static_path = Path(__file__).resolve().parent / "static"

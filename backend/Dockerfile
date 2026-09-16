@@ -25,6 +25,7 @@ RUN uv sync --no-cache
 COPY core ./core
 COPY module ./module
 COPY backend ./backend
+COPY video_crawler ./video_crawler
 
 # Expose API port
 EXPOSE 8000

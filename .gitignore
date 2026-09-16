@@ -4,3 +4,10 @@ venv/
 __pycache__/
 *.pyc
 .DS_Store
+
+# Crawler sessions contain authentication cookies/local storage.
+video_crawler/var/secrets/*
+!video_crawler/var/secrets/sessions/
+video_crawler/var/secrets/sessions/*
+!video_crawler/var/secrets/sessions/.gitkeep
+data/crawler-work/

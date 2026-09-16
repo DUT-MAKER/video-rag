@@ -8,6 +8,7 @@ from core.config import db_settings
 from module.auth.infra.persistence.models.base import (
     Base,
 )  # Load all models to register them on metadata
+from video_crawler.infrastructure import models as _crawler_models  # noqa: F401
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine

@@ -11,6 +11,7 @@ from backend.di.providers import (
     UseCaseProvider,
     VideoRagProvider,
 )
+from video_crawler.di import CrawlerModuleProvider
 
 
 def setup_di(app: FastAPI):
@@ -21,6 +22,7 @@ def setup_di(app: FastAPI):
         ClientProvider(),
         VideoRagProvider(),
         UseCaseProvider(),
+        CrawlerModuleProvider(),
     )
 
     app.state.dishka_container = container

@@ -1,6 +1,7 @@
 """RawVideoRecord entity."""
 
 import hashlib
+import json
 import re
 from dataclasses import dataclass
 from typing import Any
@@ -17,6 +18,12 @@ class RawVideoRecord:
     summary: str
     video_url: str
     id: str = ""
+    platform: str = ""
+    platform_video_id: str = ""
+    canonical_url: str = ""
+    metrics: dict[str, Any] | None = None
+    published_at: str = ""
+    provenance: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
         if not self.id:
@@ -67,4 +74,10 @@ class RawVideoRecord:
             "summary": self.summary,
             "video_url": self.video_url,
             "hook_candidate": self.extract_hook(),
+            "platform": self.platform,
+            "platform_video_id": self.platform_video_id,
+            "canonical_url": self.canonical_url,
+            "metrics_json": json.dumps(self.metrics or {}, ensure_ascii=False),
+            "published_at": self.published_at,
+            "provenance_json": json.dumps(self.provenance or {}, ensure_ascii=False),
         }

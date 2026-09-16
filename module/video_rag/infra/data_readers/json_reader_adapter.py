@@ -76,6 +76,15 @@ class JsonDataReaderAdapter(IDataReaderPort):
                 image_url=image_url,
                 summary=summary,
                 video_url=video_url,
+                id=str(item.get("id") or ""),
+                platform=str(item.get("platform") or ""),
+                platform_video_id=str(item.get("platform_video_id") or ""),
+                canonical_url=str(item.get("canonical_url") or ""),
+                metrics=item.get("metrics") if isinstance(item.get("metrics"), dict) else {},
+                published_at=str(item.get("published_at") or ""),
+                provenance=(
+                    item.get("provenance") if isinstance(item.get("provenance"), dict) else {}
+                ),
             )
             result.append(record)
 
