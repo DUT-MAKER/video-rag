@@ -10,9 +10,10 @@ AI Domain Service that orchestrates technical multimodal extraction:
 from __future__ import annotations
 
 import os
-from pathlib import Path
 import shutil
 import tempfile
+from pathlib import Path
+
 from loguru import logger
 
 from module.video_rag.domain.entities.extraction_result import VideoExtractionResult

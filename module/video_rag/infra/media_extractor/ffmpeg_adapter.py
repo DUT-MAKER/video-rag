@@ -101,9 +101,7 @@ class FFmpegMediaExtractorAdapter(IMediaExtractorPort):
 
         if proc.returncode != 0:
             error_msg = stderr.decode("utf-8", errors="replace").strip()
-            raise MediaExtractionError(
-                f"FFmpeg audio extraction failed (exit {proc.returncode}): {error_msg}"
-            )
+            raise MediaExtractionError(f"FFmpeg audio extraction failed (exit {proc.returncode}): {error_msg}")
 
         return output_path
 
@@ -168,9 +166,7 @@ class FFmpegMediaExtractorAdapter(IMediaExtractorPort):
 
         if proc.returncode != 0:
             error_msg = stderr.decode("utf-8", errors="replace").strip()
-            raise MediaExtractionError(
-                f"FFmpeg frame extraction failed (exit {proc.returncode}): {error_msg}"
-            )
+            raise MediaExtractionError(f"FFmpeg frame extraction failed (exit {proc.returncode}): {error_msg}")
 
         frame_files = sorted(Path(output_dir).glob("frame_*.jpg"))
         return [str(p) for p in frame_files]
@@ -200,14 +196,10 @@ class FFmpegMediaExtractorAdapter(IMediaExtractorPort):
 
         if proc.returncode != 0:
             error_msg = stderr.decode("utf-8", errors="replace").strip()
-            raise MediaExtractionError(
-                f"FFprobe duration probe failed (exit {proc.returncode}): {error_msg}"
-            )
+            raise MediaExtractionError(f"FFprobe duration probe failed (exit {proc.returncode}): {error_msg}")
 
         try:
             raw_duration = stdout.decode("utf-8").strip()
             return float(raw_duration)
         except (ValueError, TypeError) as exc:
-            raise MediaExtractionError(
-                f"Failed to parse video duration from ffprobe: {exc}"
-            ) from exc
+            raise MediaExtractionError(f"Failed to parse video duration from ffprobe: {exc}") from exc

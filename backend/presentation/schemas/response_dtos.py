@@ -53,7 +53,6 @@ class VideoFileIngestionResponseData(BaseModel):
     video_url: str
 
 
-
 class VideoListItemDTO(BaseModel):
     """Summary representation of a video in list view."""
 

@@ -124,28 +124,15 @@ class TranscriberSettings(BaseSettings):
 
     model_config = _SETTINGS_CONFIG
 
-    whisper_model: str = Field(
-        default="large-v3-turbo", validation_alias="WHISPER_MODEL"
-    )
+    whisper_model: str = Field(default="large-v3-turbo", validation_alias="WHISPER_MODEL")
     whisper_device: str = Field(default="cuda", validation_alias="WHISPER_DEVICE")
-    whisper_compute_type: str = Field(
-        default="float16", validation_alias="WHISPER_COMPUTE_TYPE"
-    )
+    whisper_compute_type: str = Field(default="float16", validation_alias="WHISPER_COMPUTE_TYPE")
     whisper_batch_size: int = Field(default=16, validation_alias="WHISPER_BATCH_SIZE")
     hf_token: str = Field(default="", validation_alias="HF_TOKEN")
-    default_language: str = Field(
-        default="vi", validation_alias="STT_DEFAULT_LANGUAGE"
-    )
-    enable_diarization: bool = Field(
-        default=True, validation_alias="ENABLE_DIARIZATION"
-    )
-    diarization_device: str = Field(
-        default="cpu", validation_alias="DIARIZATION_DEVICE"
-    )
-    bento_stt_url: str = Field(
-        default="http://localhost:3001", validation_alias="BENTO_STT_URL"
-    )
-
+    default_language: str = Field(default="vi", validation_alias="STT_DEFAULT_LANGUAGE")
+    enable_diarization: bool = Field(default=True, validation_alias="ENABLE_DIARIZATION")
+    diarization_device: str = Field(default="cpu", validation_alias="DIARIZATION_DEVICE")
+    bento_stt_url: str = Field(default="http://localhost:3001", validation_alias="BENTO_STT_URL")
 
 
 # Cached Singleton Getters
@@ -204,5 +191,3 @@ embedding_settings = get_embedding_settings()
 rerank_settings = get_rerank_settings()
 vector_store_settings = get_vector_store_settings()
 transcriber_settings = get_transcriber_settings()
-
-

@@ -45,7 +45,7 @@ class SearchViralPatternsUseCase:
         # 3. Optional Reranking
         if self._rerank and use_rerank and candidates:
             candidate_docs = [
-                f"Caption: {ctx.caption}\nHook: {ctx.hook_candidate}\nSummary: {ctx.summary}\n{ctx.document}"
+                f"Caption: {ctx.caption}\nHook: {ctx.hook_candidate}\nSummary: {ctx.summary}\n{ctx.document[:500]}"
                 for ctx in candidates
             ]
             ranked_items = await self._rerank.rerank(

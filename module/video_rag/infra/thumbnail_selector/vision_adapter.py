@@ -91,9 +91,7 @@ class VisionThumbnailSelectorAdapter(IThumbnailSelectorPort):
                 if best_by_llm:
                     return best_by_llm
             except Exception as exc:
-                logger.warning(
-                    f"Vision LLM ranking failed ({exc}), falling back to sharpest frame"
-                )
+                logger.warning(f"Vision LLM ranking failed ({exc}), falling back to sharpest frame")
 
         # Fallback: Sharpest candidate
         return top_candidates[0][0]
@@ -105,7 +103,7 @@ class VisionThumbnailSelectorAdapter(IThumbnailSelectorPort):
     ) -> str | None:
         """Call multimodal LLM to pick the highest CTR thumbnail frame."""
         image_contents: list[dict[str, Any]] = []
-        for idx, path in enumerate(candidate_paths):
+        for path in candidate_paths:
             try:
                 with open(path, "rb") as f:
                     b64 = base64.b64encode(f.read()).decode("utf-8")
@@ -116,8 +114,7 @@ class VisionThumbnailSelectorAdapter(IThumbnailSelectorPort):
                     }
                 )
             except Exception as e:
-                logger.debug(f"Failed to read image {path}: {e}")
-                continue
+                logger.warning(f"Failed to read frame {path} for vision model: {e}")
 
         if not image_contents:
             return None
@@ -125,7 +122,8 @@ class VisionThumbnailSelectorAdapter(IThumbnailSelectorPort):
         prompt_text = (
             f"Given these candidate thumbnail frames for a viral video with context: '{video_context}', "
             f"select the single best frame for high CTR (curiosity, emotional expression, clarity). "
-            f"Return JSON: {{\"selected_index\": 0, \"reason\": \"...\"}} with selected_index between 0 and {len(image_contents)-1}."
+            f'Return JSON: {{"selected_index": 0, "reason": "..."}} with selected_index between '
+            f"0 and {len(image_contents) - 1}."
         )
 
         headers: dict[str, str] = {"Content-Type": "application/json"}

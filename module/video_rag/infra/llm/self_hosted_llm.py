@@ -88,8 +88,12 @@ You MUST respond with valid, parseable JSON matching this schema:
 Quality Guidelines:
 1. No generic greetings (NEVER start with 'Hey guys', 'Welcome back'). Jump straight into the conflict or revelation.
 2. Fast-paced storytelling (each scene 3-6 seconds).
-3. Image and video prompts must be in professional cinematographic English.
-4. Return ONLY valid JSON, with no markdown code blocks or surrounding text."""
+3. Language Matching: All spoken and written script elements (title, target_niche, hook script, retention_rationale,
+scene narration, visual_action, call_to_action, and hashtags) MUST strictly match the primary language of the user's
+input Topic/Target Audience (e.g., if Vietnamese, write in authentic Vietnamese; if English, in English).
+4. Image and video prompts: The 'image_prompt' and 'video_prompt' fields MUST ALWAYS remain in professional
+cinematographic English for AI generation tools (Midjourney, Flux, Veo, Kling).
+5. Return ONLY valid JSON, with no markdown code blocks or surrounding text."""
 
     def _build_user_prompt(
         self,
@@ -122,6 +126,12 @@ Quality Guidelines:
             prompt_lines.append(
                 "Extract pacing, psychological curiosity, and structural rhythm from these benchmark patterns."
             )
+
+        prompt_lines.append(
+            "\nLANGUAGE REQUIREMENT: Detect the language of the provided Topic and Target Audience. "
+            "You MUST compose all script narrative elements (title, hook, scene narrations, visual actions, "
+            "call-to-action) in that exact matching language."
+        )
 
         return "\n".join(prompt_lines)
 
@@ -184,7 +194,7 @@ Quality Guidelines:
         hook_style: str | None,
         reference_contexts: list[SimilarVideoContext],
     ) -> ViralScript:
-        """Submit prompt to LLM to generate structured viral video script."""
+        """Submit prompt to LLM to generate structured viral video script with real-time log streaming."""
         system_prompt = self._build_system_prompt()
         user_prompt = self._build_user_prompt(
             topic=topic,
@@ -195,8 +205,9 @@ Quality Guidelines:
             reference_contexts=reference_contexts,
         )
 
+        logger.debug(f"📝 [LLM User Prompt]\n{user_prompt}")
+
         try:
-            logger.info(f"🤖 [LLM] Đang gọi generate_script qua AsyncOpenAI (model='{self._model_name}')...")
             response = await self._client.chat.completions.create(
                 model=self._model_name,
                 messages=[
@@ -206,14 +217,49 @@ Quality Guidelines:
                 temperature=self._temperature,
                 max_tokens=self._max_tokens,
                 response_format={"type": "json_object"},
+                stream=True,
             )
-            raw_content = response.choices[0].message.content or ""
+
+            raw_content = ""
+            if hasattr(response, "__aiter__"):
+                collected_chunks: list[str] = []
+                collected_reasoning: list[str] = []
+                is_reasoning_logged = False
+
+                async for chunk in response:
+                    delta = chunk.choices[0].delta if chunk.choices else None
+                    if not delta:
+                        continue
+
+                    reasoning = getattr(delta, "reasoning_content", None)
+                    if reasoning:
+                        if not is_reasoning_logged:
+                            logger.info("🧠 [LLM Thinking]:")
+                            is_reasoning_logged = True
+                        collected_reasoning.append(reasoning)
+                        logger.opt(raw=True).info(reasoning)
+
+                    content = delta.content
+                    if content:
+                        collected_chunks.append(content)
+
+                if is_reasoning_logged:
+                    logger.opt(raw=True).info("\n")
+
+                raw_content = "".join(collected_chunks).strip()
+                if not raw_content and collected_reasoning:
+                    reasoning_text = "".join(collected_reasoning)
+                    json_in_reasoning = re.search(r"\{[\s\S]*\}", reasoning_text)
+                    if json_in_reasoning:
+                        raw_content = json_in_reasoning.group(0)
+            elif hasattr(response, "choices"):
+                first_choice = response.choices[0]
+                raw_content = (getattr(first_choice.message, "content", None) or "").strip()
+
             return self._parse_llm_json(raw_content, platform, duration_seconds)
         except Exception as err:
             logger.warning(f"⚠️ [LLM] Lỗi generate_script ({type(err).__name__}: {err}).")
-            raise ScriptGenerationError(
-                f"Unable to connect to Self-hosted LLM API: {err}"
-            ) from err
+            raise ScriptGenerationError(f"Unable to connect to Self-hosted LLM API: {err}") from err
 
     def _build_chat_system_prompt(
         self,
@@ -227,7 +273,10 @@ Quality Guidelines:
             "Style & Tone Guidelines:\n"
             "1. Be direct, concise, and structured.\n"
             "2. Ground your advice in high-CTR retention psychology (first 3-second rule, pattern interrupts).\n"
-            "3. Format recommendations with bullet points and bold highlights."
+            "3. Format recommendations with bullet points and bold highlights.\n"
+            "4. Language Consistency: ALWAYS detect and respond in the EXACT SAME LANGUAGE as the user's messages "
+            "(e.g., if the user writes in Vietnamese, reply in Vietnamese; if in English, reply in English). "
+            "Only keep AI visual generation prompts (image_prompt, video_prompt) in descriptive English."
         )
         if current_script_json:
             prompt += f"\n\nCURRENT WORKING DRAFT SCRIPT:\n{current_script_json}"
@@ -272,9 +321,7 @@ Quality Guidelines:
             return
         except Exception as err:
             logger.warning(f"⚠️ [LLM] Lỗi stream_chat ({type(err).__name__}: {err}).")
-            raise ScriptGenerationError(
-                f"Unable to stream from Self-hosted LLM API: {err}"
-            ) from err
+            raise ScriptGenerationError(f"Unable to stream from Self-hosted LLM API: {err}") from err
 
     async def classify_intent(self, message: str) -> ChatIntent:
         """Classify user query intent into ChatIntent using LLM with structured format."""
@@ -320,8 +367,12 @@ Quality Guidelines:
             "You are a viral video metadata analyst and strategist for short-form platforms (TikTok, Reels, Shorts).\n"
             "Given a speaker-labeled transcript, generate:\n"
             "1. caption: A high-CTR, curiosity-driven viral video title (under 100 characters).\n"
-            "2. summary: A concise 2-3 sentence summary capturing the core message, dialogue dynamics, and key takeaway.\n"
-            "3. hashtag: 5-8 relevant, high-traffic trending hashtags as a single space-separated string (e.g. '#phattrienbanthan #kỷluat #viral #learnontiktok').\n\n"
+            "2. summary: A concise 2-3 sentence summary capturing the core message, dialogue dynamics, "
+            "and key takeaway.\n"
+            "3. hashtag: 5-8 relevant, high-traffic trending hashtags as a single space-separated string "
+            "(e.g. '#phattrienbanthan #kỷluat #viral #learnontiktok').\n"
+            "4. language: The caption and summary MUST be generated in the SAME language as the transcript "
+            "(matching the specified Language).\n\n"
             "The transcript contains speaker labels (SPEAKER_00, SPEAKER_01, etc.) and timestamps.\n"
             "Respond ONLY with valid JSON matching:\n"
             '{"caption": "...", "summary": "...", "hashtag": "..."}\n'
@@ -332,7 +383,10 @@ Quality Guidelines:
         logger.info(f"📄 [LLM] Độ dài transcript gửi lên: {len(transcript)} ký tự. Preview: '{transcript[:150]}'")
 
         try:
-            logger.info(f"🤖 [LLM] Đang gọi AsyncOpenAI enrich_video_metadata (base_url='{self._api_base_url}', model='{self._model_name}')...")
+            logger.info(
+                f"🤖 [LLM] Đang gọi AsyncOpenAI enrich_video_metadata "
+                f"(base_url='{self._api_base_url}', model='{self._model_name}')..."
+            )
             response = await self._client.chat.completions.create(
                 model=self._model_name,
                 messages=[
@@ -355,7 +409,7 @@ Quality Guidelines:
                         json_in_reasoning = re.search(r"\{[\s\S]*\}", reasoning)
                         if json_in_reasoning:
                             content = json_in_reasoning.group(0)
-            
+
             logger.info(f"📝 [LLM] Raw output từ AsyncOpenAI: '{content[:300]}'")
             json_match = re.search(r"\{.*\}", content, re.DOTALL)
             if json_match:
@@ -367,9 +421,13 @@ Quality Guidelines:
                     "hashtag": str(parsed.get("hashtag", "")).strip(),
                 }
             else:
-                logger.warning(f"⚠️ [LLM] AsyncOpenAI trả về thành công nhưng content trống hoặc không có JSON: '{content}'")
+                logger.warning(
+                    f"⚠️ [LLM] AsyncOpenAI trả về thành công nhưng content trống hoặc không có JSON: '{content}'"
+                )
         except Exception as err:
-            logger.warning(f"⚠️ [LLM] Lỗi exception khi gọi AsyncOpenAI ({type(err).__name__}: {err}). Sẽ dùng chế độ Fallback.")
+            logger.warning(
+                f"⚠️ [LLM] Lỗi exception khi gọi AsyncOpenAI ({type(err).__name__}: {err}). Sẽ dùng chế độ Fallback."
+            )
 
         logger.info("ℹ️ [LLM] Đang chạy Offline Fallback để trích xuất caption & summary từ transcript...")
         return self._fallback_enrich_video_metadata(transcript)
@@ -377,9 +435,7 @@ Quality Guidelines:
     def _fallback_enrich_video_metadata(self, transcript: str) -> dict[str, str]:
         """Offline fallback metadata extraction when LLM API is unavailable."""
         clean_lines = [
-            line.strip()
-            for line in transcript.splitlines()
-            if line.strip() and not line.strip().startswith("#")
+            line.strip() for line in transcript.splitlines() if line.strip() and not line.strip().startswith("#")
         ]
 
         raw_text = " ".join(clean_lines)
@@ -390,7 +446,11 @@ Quality Guidelines:
         if len(first_sentence) > 80:
             first_sentence = first_sentence[:77] + "..."
 
-        caption = f"{first_sentence} - Bí Quyết Viral Triệu View" if first_sentence else "Bí Quyết Tạo Kịch Bản Video Viral Triệu View"
+        caption = (
+            f"{first_sentence} - Bí Quyết Viral Triệu View"
+            if first_sentence
+            else "Bí Quyết Tạo Kịch Bản Video Viral Triệu View"
+        )
 
         summary = (
             f"Video chia sẻ nội dung thảo luận với các luận điểm chính: "

@@ -4,9 +4,14 @@ import asyncio
 import os
 import shutil
 import tempfile
+
 import pytest
 
 from module.video_rag.infra.media_extractor.ffmpeg_adapter import FFmpegMediaExtractorAdapter
+
+pytestmark = pytest.mark.skipif(
+    shutil.which("ffmpeg") is None, reason="ffmpeg is required for FFmpegMediaExtractorAdapter tests"
+)
 
 
 @pytest.fixture
@@ -24,11 +29,20 @@ async def sample_video(temp_dir):
     cmd = [
         "ffmpeg",
         "-y",
-        "-f", "lavfi", "-i", "testsrc=duration=3:size=320x240:rate=25",
-        "-f", "lavfi", "-i", "sine=frequency=1000:duration=3",
-        "-c:v", "libx264",
-        "-pix_fmt", "yuv420p",
-        "-c:a", "aac",
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc=duration=3:size=320x240:rate=25",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=1000:duration=3",
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
         video_path,
     ]
     proc = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)

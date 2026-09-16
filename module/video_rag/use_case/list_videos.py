@@ -1,7 +1,6 @@
 """ListVideosUseCase implementation."""
 
 from dataclasses import dataclass
-from typing import Any
 
 from module.video_rag.port.vector_store_port import IVectorStorePort
 

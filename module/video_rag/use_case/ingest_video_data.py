@@ -3,14 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-import os
-from typing import Any
 
 from loguru import logger
 
 from module.video_rag.domain.entities.extraction_result import VideoExtractionResult
 from module.video_rag.domain.entities.video_record import RawVideoRecord
-from module.video_rag.domain.exceptions import VideoRecordParsingError
 from module.video_rag.port.embedding_port import IEmbeddingPort
 from module.video_rag.port.vector_store_port import IVectorStorePort
 from module.video_rag.service.video_extraction_service import (
@@ -85,7 +82,10 @@ class IngestVideoDataUseCase:
             language=input_data.language,
         )
         extractions.append(extraction)
-        logger.info(f"✅ [IngestVideoDataUseCase] Giai đoạn 1 hoàn tất (Trích xuất được {extraction.speaker_count} speaker, duration: {extraction.duration_seconds:.1f}s)")
+        logger.info(
+            f"✅ [IngestVideoDataUseCase] Giai đoạn 1 hoàn tất "
+            f"(Trích xuất được {extraction.speaker_count} speaker, duration: {extraction.duration_seconds:.1f}s)"
+        )
 
         # Merge extracted information with user-provided metadata
         final_caption = input_data.caption or extraction.caption

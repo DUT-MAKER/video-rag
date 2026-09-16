@@ -2,15 +2,18 @@
 
 import os
 import tempfile
-import pytest
 from unittest.mock import AsyncMock
 
+import pytest
+
 from module.video_rag.domain.entities.extraction_result import TranscriptSegment
+from module.video_rag.port.llm_port import ILLMPort
 from module.video_rag.port.media_extractor_port import IMediaExtractorPort
 from module.video_rag.port.thumbnail_selector_port import IThumbnailSelectorPort
 from module.video_rag.port.transcriber_port import ITranscriberPort, TranscriptionResult
-from module.video_rag.port.llm_port import ILLMPort
-from module.video_rag.use_case.extract_video_metadata import ExtractVideoMetadataUseCase
+from module.video_rag.service.video_extraction_service import (
+    VideoExtractionPipelineService as ExtractVideoMetadataUseCase,
+)
 
 
 @pytest.fixture

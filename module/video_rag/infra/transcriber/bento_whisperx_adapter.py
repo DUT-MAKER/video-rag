@@ -1,6 +1,7 @@
 """BentoWhisperXAdapter implementation connecting to BentoML STT service."""
 
 import os
+
 import httpx
 from loguru import logger
 
@@ -64,13 +65,10 @@ class BentoWhisperXAdapter(ITranscriberPort):
                     )
         except Exception as exc:
             logger.warning(
-                f"Failed to connect to BentoML STT service at {endpoint} ({exc}). "
-                f"Fallback mode: {self._fallback_mode}"
+                f"Failed to connect to BentoML STT service at {endpoint} ({exc}). Fallback mode: {self._fallback_mode}"
             )
             if not self._fallback_mode:
-                raise TranscriptionError(
-                    f"BentoML STT service call failed: {exc}"
-                ) from exc
+                raise TranscriptionError(f"BentoML STT service call failed: {exc}") from exc
 
         return self._fallback_transcription(audio_path, language=language)
 

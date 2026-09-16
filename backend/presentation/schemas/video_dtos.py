@@ -43,7 +43,6 @@ class IngestVideoFileRequestDTO(BaseModel):
     )
 
 
-
 class SearchPatternsRequestDTO(BaseModel):
     """Request DTO for semantic similarity search over benchmark patterns."""
 

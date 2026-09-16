@@ -5,7 +5,10 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from backend.main import app
-from module.video_rag.domain.entities.reference_pattern import ReferencedPattern
+from module.video_rag.domain.entities.reference_pattern import (
+    ReferencedPattern,
+    SimilarVideoContext,
+)
 from module.video_rag.domain.entities.viral_script import (
     CallToAction,
     Hook,
@@ -19,6 +22,7 @@ from module.video_rag.infra.embeddings.self_hosted_embed import (
 )
 from module.video_rag.infra.llm.self_hosted_llm import SelfHostedLLMAdapter
 from module.video_rag.infra.rerank.dut_ai_rerank_adapter import DutAiRerankAdapter
+from module.video_rag.infra.vector_store.pgvector_adapter import PgVectorAdapter
 from module.video_rag.port.rerank_port import RerankedDocument
 
 client = TestClient(app)
@@ -121,10 +125,25 @@ def test_full_pipeline_search_generate() -> None:
     async def mock_rerank(query: str, documents: list[str], top_n: int = 3) -> list[RerankedDocument]:
         return [RerankedDocument(index=i, score=0.95 - (i * 0.1), text=doc) for i, doc in enumerate(documents[:top_n])]
 
+    async def mock_vector_search(self, query_vector: list[float], top_k: int = 5) -> list[SimilarVideoContext]:
+        return [
+            SimilarVideoContext(
+                id="p1",
+                document="Content about habit and 2-minute rule",
+                metadata={"caption": "Habit Loop", "hook_candidate": "2-min trick"},
+                score=0.92,
+            )
+        ]
+
+    async def mock_initialize(self) -> None:
+        return None
+
     with (
         patch.object(SelfHostedEmbeddingAdapter, "embed_batch", side_effect=mock_embed_batch),
         patch.object(SelfHostedLLMAdapter, "generate_script", side_effect=mock_generate_script),
         patch.object(DutAiRerankAdapter, "rerank", side_effect=mock_rerank),
+        patch.object(PgVectorAdapter, "initialize", new=mock_initialize),
+        patch.object(PgVectorAdapter, "search", new=mock_vector_search),
     ):
         # 1. Search Patterns
         search_payload = {"query": "discipline habit", "top_k": 3}
