@@ -10,6 +10,16 @@ class IS3Client(Protocol):
         """Upload a file-like object to a specific S3 bucket and key."""
         ...
 
+    def upload_bytes(
+        self,
+        bucket: str,
+        key: str,
+        data: bytes,
+        content_type: str = "application/octet-stream",
+    ) -> None:
+        """Upload raw bytes to a specific S3 bucket and key."""
+        ...
+
     def get_object_url(self, bucket: str, key: str) -> str:
         """Generate and return the public/internal URL for a given bucket and key."""
         ...
@@ -19,3 +29,4 @@ class IS3Client(Protocol):
     ) -> str:
         """Generate a presigned PUT upload URL."""
         ...
+

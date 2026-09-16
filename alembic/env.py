@@ -3,14 +3,14 @@ from __future__ import annotations
 import asyncio
 from logging.config import fileConfig
 
-from alembic import context
-from core.config import db_settings
-from module.auth.infra.persistence.models.base import (
-    Base,
-)  # Load all models to register them on metadata
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
+
+import module.auth.infra.persistence.models.user  # noqa: F401
+from alembic import context
+from core.config import db_settings
+from module.auth.infra.persistence.models.base import Base
 
 config = context.config
 

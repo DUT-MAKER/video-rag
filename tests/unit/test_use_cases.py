@@ -13,6 +13,7 @@ from module.video_rag.domain.value_objects.platform_target import PlatformTarget
 from module.video_rag.port.data_reader_port import IDataReaderPort
 from module.video_rag.port.embedding_port import IEmbeddingPort
 from module.video_rag.port.llm_port import ILLMPort
+from module.video_rag.port.rerank_port import IRerankPort, RerankedDocument
 from module.video_rag.port.vector_store_port import IVectorStorePort
 from module.video_rag.use_case.generate_viral_script import GenerateViralScriptUseCase
 from module.video_rag.use_case.ingest_video_data import IngestVideoDataUseCase
@@ -117,7 +118,24 @@ class FakeLLMPort(ILLMPort):
         )
 
 
+class FakeRerankPort(IRerankPort):
+    def __init__(self, reversed_order: bool = False) -> None:
+        self.reversed_order = reversed_order
+
+    async def rerank(
+        self, query: str, documents: list[str], top_n: int = 3
+    ) -> list[RerankedDocument]:
+        indices = list(range(len(documents)))
+        if self.reversed_order:
+            indices = list(reversed(indices))
+        return [
+            RerankedDocument(index=idx, score=0.99 - (i * 0.1), text=documents[idx])
+            for i, idx in enumerate(indices[:top_n])
+        ]
+
+
 @pytest.mark.asyncio
+
 async def test_ingest_video_data_use_case() -> None:
     sample_record = RawVideoRecord(
         caption="2-Minute Rule",
@@ -218,3 +236,79 @@ async def test_generate_viral_script_validation() -> None:
 
     with pytest.raises(DomainValidationError):
         await use_case.execute(topic="Valid Topic", duration_seconds=5)
+
+
+@pytest.mark.asyncio
+async def test_generate_viral_script_with_reranking() -> None:
+    fake_llm = FakeLLMPort()
+    fake_embed = FakeEmbeddingPort()
+    fake_vector = FakeVectorStorePort()
+    # FakeRerankPort with reversed_order will reverse candidate order
+    fake_rerank = FakeRerankPort(reversed_order=True)
+
+    await fake_vector.upsert(
+        id="cand_1",
+        vector=[0.1, 0.2, 0.3],
+        metadata={"caption": "Video 1", "hook_candidate": "Hook 1"},
+        document="Document 1",
+    )
+    await fake_vector.upsert(
+        id="cand_2",
+        vector=[0.1, 0.2, 0.3],
+        metadata={"caption": "Video 2", "hook_candidate": "Hook 2"},
+        document="Document 2",
+    )
+
+    use_case = GenerateViralScriptUseCase(
+        llm_port=fake_llm,
+        embedding_port=fake_embed,
+        vector_store_port=fake_vector,
+        rerank_port=fake_rerank,
+        candidate_k=10,
+    )
+
+    script = await use_case.execute(
+        topic="Morning routine",
+        target_audience="General",
+        top_k_patterns=2,
+    )
+
+    # Because rerank reversed the order, Video 2 should now be first!
+    assert len(script.references) == 2
+    assert script.references[0].original_caption == "Video 2"
+    assert script.references[0].similarity_score == 0.99
+    assert script.references[1].original_caption == "Video 1"
+
+
+@pytest.mark.asyncio
+async def test_search_viral_patterns_with_reranking() -> None:
+    fake_embed = FakeEmbeddingPort()
+    fake_vector = FakeVectorStorePort()
+    fake_rerank = FakeRerankPort(reversed_order=True)
+
+    await fake_vector.upsert(
+        id="v1",
+        vector=[0.1, 0.2, 0.3],
+        metadata={"caption": "Early Bird", "hook_candidate": "Wake up!"},
+        document="Doc 1",
+    )
+    await fake_vector.upsert(
+        id="v2",
+        vector=[0.1, 0.2, 0.3],
+        metadata={"caption": "Night Owl", "hook_candidate": "Stay up!"},
+        document="Doc 2",
+    )
+
+    use_case = SearchViralPatternsUseCase(
+        embedding_port=fake_embed,
+        vector_store_port=fake_vector,
+        rerank_port=fake_rerank,
+    )
+
+    results = await use_case.execute(query="Night routines", top_k=2, use_rerank=True)
+    assert len(results) == 2
+    # Reranker should have prioritized v2 (reversed order)
+    assert results[0].id == "v2"
+    assert results[0].score == 0.99
+    assert results[1].id == "v1"
+

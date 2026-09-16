@@ -11,6 +11,7 @@ router = APIRouter(prefix="/uploads", tags=["uploads"])
 
 
 @router.post("", response_model=UploadOut)
+@router.post("/file", response_model=UploadOut)
 @inject
 async def upload_file(
     use_case: FromDishka[UploadFileUseCase],
@@ -24,6 +25,7 @@ async def upload_file(
         content_type=file.content_type or "application/octet-stream",
     )
     return UploadOut(key=res.key, public_url=res.public_url)
+
 
 
 @router.post("/presign", response_model=UploadOut)

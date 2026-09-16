@@ -1,11 +1,17 @@
-"""Video RAG domain exceptions."""
+class DomainError(Exception):
+    """Base domain exception."""
+    pass
 
-from core.exceptions import DomainError, DomainValidationError
+
+class DomainValidationError(DomainError):
+    """Domain validation error."""
+    pass
 
 
 class VideoRecordParsingError(DomainError):
     """Error parsing raw video records from data sources."""
     pass
+
 
 
 class ScriptGenerationError(DomainError):

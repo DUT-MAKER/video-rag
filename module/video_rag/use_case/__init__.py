@@ -6,7 +6,7 @@ from .chat_with_viral_assistant import (
     ChatWithViralAssistantUseCase,
 )
 from .generate_viral_script import GenerateViralScriptUseCase
-from .ingest_video_data import IngestVideoDataUseCase, IngestionResult
+from .ingest_video_data import IngestionResult, IngestVideoDataUseCase
 from .search_viral_patterns import SearchViralPatternsUseCase
 
 __all__ = [

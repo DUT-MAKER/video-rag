@@ -1,6 +1,7 @@
 """FastAPI dependency helpers for authentication and request context."""
 
 from typing import Annotated
+
 from fastapi import Depends, HTTPException, Request
 from pydantic import BaseModel
 

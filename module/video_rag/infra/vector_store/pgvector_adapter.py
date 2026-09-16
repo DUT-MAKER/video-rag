@@ -1,7 +1,10 @@
 """PgVectorAdapter implementation for PostgreSQL with pgvector extension."""
 
 import json
+import math
 from typing import Any
+
+from loguru import logger
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
@@ -16,40 +19,64 @@ class PgVectorAdapter(IVectorStorePort):
         self,
         engine: AsyncEngine,
         table_name: str = "viral_video_embeddings",
-        dimension: int = 384,
+        dimension: int = 1024,
+        fallback_mode: bool = True,
     ) -> None:
         self._engine = engine
         self._table_name = table_name
         self._dimension = dimension
+        self._fallback_mode = fallback_mode
         self._sessionmaker = async_sessionmaker(bind=self._engine, class_=AsyncSession, expire_on_commit=False)
         self._table_initialized = False
+        self._use_fallback = False
+        self._memory_store: dict[str, dict[str, Any]] = {}
+
+    @staticmethod
+    def _cosine_similarity(v1: list[float], v2: list[float]) -> float:
+        """Calculate cosine similarity between two float vectors."""
+        dot = sum(a * b for a, b in zip(v1, v2, strict=False))
+        norm1 = math.sqrt(sum(a * a for a in v1))
+        norm2 = math.sqrt(sum(b * b for b in v2))
+        if norm1 == 0.0 or norm2 == 0.0:
+            return 0.0
+        return dot / (norm1 * norm2)
 
     async def initialize(self) -> None:
         """Create extension and table if they do not exist."""
         if self._table_initialized:
             return
 
-        async with self._engine.begin() as conn:
-            # Create extension
-            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
-            # Create table
-            create_table_sql = f"""
-            CREATE TABLE IF NOT EXISTS {self._table_name} (
-                id VARCHAR(64) PRIMARY KEY,
-                vector vector({self._dimension}),
-                metadata JSONB,
-                document TEXT
-            );
-            """
-            await conn.execute(text(create_table_sql))
-            # Create HNSW index for cosine distance
-            create_index_sql = f"""
-            CREATE INDEX IF NOT EXISTS {self._table_name}_hnsw_idx
-            ON {self._table_name} USING hnsw (vector vector_cosine_ops);
-            """
-            await conn.execute(text(create_index_sql))
+        try:
+            async with self._engine.begin() as conn:
+                # Create extension
+                await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+                # Create table
+                create_table_sql = f"""
+                CREATE TABLE IF NOT EXISTS {self._table_name} (
+                    id VARCHAR(64) PRIMARY KEY,
+                    vector vector({self._dimension}),
+                    metadata JSONB,
+                    document TEXT
+                );
+                """
+                await conn.execute(text(create_table_sql))
+                # Create HNSW index for cosine distance
+                create_index_sql = f"""
+                CREATE INDEX IF NOT EXISTS {self._table_name}_hnsw_idx
+                ON {self._table_name} USING hnsw (vector vector_cosine_ops);
+                """
+                await conn.execute(text(create_index_sql))
 
-        self._table_initialized = True
+            self._table_initialized = True
+        except Exception as exc:
+            if self._fallback_mode:
+                logger.warning(
+                    f"PgVectorAdapter failed to initialize database ({exc}). Falling back to in-memory vector store."
+                )
+                self._use_fallback = True
+                self._table_initialized = True
+            else:
+                raise
 
     async def upsert(
         self,
@@ -78,6 +105,16 @@ class PgVectorAdapter(IVectorStorePort):
             return
 
         await self.initialize()
+
+        if self._use_fallback:
+            for i in range(len(ids)):
+                self._memory_store[ids[i]] = {
+                    "id": ids[i],
+                    "vector": vectors[i],
+                    "metadata": metadatas[i],
+                    "document": documents[i],
+                }
+            return
 
         async with self._sessionmaker() as session:
             for i in range(len(ids)):
@@ -112,6 +149,24 @@ class PgVectorAdapter(IVectorStorePort):
     ) -> list[SimilarVideoContext]:
         """Retrieve top-K nearest vectors using cosine similarity (1 - cosine distance)."""
         await self.initialize()
+
+        if self._use_fallback:
+            scored: list[tuple[float, dict[str, Any]]] = []
+            for item in self._memory_store.values():
+                sim = self._cosine_similarity(query_vector, item["vector"])
+                scored.append((sim, item))
+            scored.sort(key=lambda x: x[0], reverse=True)
+            fallback_results: list[SimilarVideoContext] = []
+            for sim, item in scored[:top_k]:
+                fallback_results.append(
+                    SimilarVideoContext(
+                        id=item["id"],
+                        document=item["document"],
+                        metadata=item["metadata"],
+                        score=round(float(sim), 4),
+                    )
+                )
+            return fallback_results
 
         vec_str = "[" + ",".join(str(x) for x in query_vector) + "]"
 
@@ -149,6 +204,9 @@ class PgVectorAdapter(IVectorStorePort):
     async def count(self) -> int:
         """Return total number of items in pgvector table."""
         await self.initialize()
+        if self._use_fallback:
+            return len(self._memory_store)
+
         count_query = f"SELECT COUNT(*) FROM {self._table_name};"
         async with self._sessionmaker() as session:
             result = await session.execute(text(count_query))

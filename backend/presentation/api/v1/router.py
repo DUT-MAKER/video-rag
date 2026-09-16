@@ -9,7 +9,8 @@ from backend.presentation.api.v1.me import router as me_router
 from backend.presentation.api.v1.uploads import router as uploads_router
 from backend.presentation.api.v1.video_rag import router as video_rag_router
 
-api_v1_router = APIRouter(prefix="/api/v1")
+api_v1_router = APIRouter()
+
 
 # Mount sub-routers
 api_v1_router.include_router(health_router)

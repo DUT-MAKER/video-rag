@@ -1,8 +1,12 @@
 """FastAPI application root entrypoint forwarding to backend.main."""
 
 import uvicorn
-from backend.main import uvicorn
+
+from backend.main import app
 from core.config import app_settings
+
+__all__ = ["app", "main"]
+
 
 
 def main():

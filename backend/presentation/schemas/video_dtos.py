@@ -1,6 +1,7 @@
 """Video Request DTOs."""
 
 from typing import Any
+
 from pydantic import BaseModel, Field
 
 from module.video_rag.domain.value_objects.platform_target import PlatformTarget

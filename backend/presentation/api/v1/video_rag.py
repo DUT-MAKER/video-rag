@@ -65,6 +65,12 @@ async def ingest_video_data(
     status_code=status.HTTP_200_OK,
     summary="Semantic similarity search over benchmark viral patterns",
 )
+@router.post(
+    "/search-patterns",
+    response_model=StandardResponse[list[SearchPatternItem]],
+    status_code=status.HTTP_200_OK,
+    include_in_schema=False,
+)
 @inject
 async def search_viral_patterns(
     payload: SearchPatternsRequestDTO,
@@ -99,8 +105,15 @@ async def search_viral_patterns(
     status_code=status.HTTP_200_OK,
     summary="Generate complete production-ready viral short-form video script with RAG",
 )
+@router.post(
+    "/generate-script",
+    response_model=StandardResponse[ViralScriptResponseDTO],
+    status_code=status.HTTP_200_OK,
+    include_in_schema=False,
+)
 @inject
 async def generate_viral_script(
+
     payload: GenerateScriptRequestDTO,
     use_case: FromDishka[GenerateViralScriptUseCase],
 ) -> StandardResponse[ViralScriptResponseDTO]:

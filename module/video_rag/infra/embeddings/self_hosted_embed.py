@@ -3,6 +3,7 @@
 import hashlib
 import math
 import re
+
 import httpx
 
 from module.video_rag.port.embedding_port import IEmbeddingPort

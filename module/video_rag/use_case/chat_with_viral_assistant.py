@@ -4,6 +4,7 @@ import json
 import time
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
+from typing import Any
 
 from module.video_rag.domain.entities.chat_session import ChatSession
 from module.video_rag.domain.entities.reference_pattern import (
@@ -16,6 +17,7 @@ from module.video_rag.domain.value_objects.message_role import MessageRole
 from module.video_rag.port.chat_session_store_port import IChatSessionStorePort
 from module.video_rag.port.embedding_port import IEmbeddingPort
 from module.video_rag.port.llm_port import ILLMPort
+from module.video_rag.port.rerank_port import IRerankPort
 from module.video_rag.port.vector_store_port import IVectorStorePort
 
 
@@ -58,11 +60,15 @@ class ChatWithViralAssistantUseCase:
         embedding_port: IEmbeddingPort,
         vector_store_port: IVectorStorePort,
         session_store_port: IChatSessionStorePort,
+        rerank_port: IRerankPort | None = None,
+        candidate_k: int = 15,
     ) -> None:
         self._llm = llm_port
         self._embed = embedding_port
         self._vector_store = vector_store_port
         self._session_store = session_store_port
+        self._rerank = rerank_port
+        self._candidate_k = candidate_k
 
     def _detect_intent(self, message: str) -> ChatIntent:
         """Classify user intent based on query semantics."""
@@ -141,15 +147,44 @@ class ChatWithViralAssistantUseCase:
         return ChatSession()
 
     async def _retrieve_references(self, query: str, top_k: int = 3) -> list[SimilarVideoContext]:
-        """Query vector database for similar benchmark video records."""
+        """Query vector database for similar benchmark video records with optional reranking."""
         try:
             if hasattr(self._embed, "embed_text"):
                 query_vector = await self._embed.embed_text(query)
             else:
                 query_vector = await self._embed.get_embedding(query)
-            return await self._vector_store.search(query_vector=query_vector, top_k=top_k)
+
+            fetch_k = max(top_k, self._candidate_k) if self._rerank else top_k
+            candidates = await self._vector_store.search(query_vector=query_vector, top_k=fetch_k)
+
+            if self._rerank and candidates:
+                candidate_docs = [
+                    f"Caption: {ctx.caption}\nHook: {ctx.hook_candidate}\nSummary: {ctx.summary}\n{ctx.document}"
+                    for ctx in candidates
+                ]
+                ranked_items = await self._rerank.rerank(
+                    query=query,
+                    documents=candidate_docs,
+                    top_n=top_k,
+                )
+                reranked_contexts: list[SimilarVideoContext] = []
+                for item in ranked_items:
+                    if 0 <= item.index < len(candidates):
+                        orig = candidates[item.index]
+                        reranked_contexts.append(
+                            SimilarVideoContext(
+                                id=orig.id,
+                                document=orig.document,
+                                metadata=orig.metadata,
+                                score=item.score,
+                            )
+                        )
+                return reranked_contexts or candidates[:top_k]
+
+            return candidates[:top_k]
         except Exception:
             return []
+
 
     async def execute_streaming(
         self,

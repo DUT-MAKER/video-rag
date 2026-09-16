@@ -23,7 +23,7 @@ def setup_exception_handlers(app: FastAPI) -> None:
         logger.warning(f"AppException: {exc.message} (status: {exc.status_code})")
         return JSONResponse(
             status_code=exc.status_code,
-            content={"success": False, "message": exc.message, "data": None},
+            content={"success": False, "message": exc.message, "detail": exc.message, "data": None},
         )
 
     @app.exception_handler(DomainValidationError)
@@ -32,8 +32,9 @@ def setup_exception_handlers(app: FastAPI) -> None:
     ) -> JSONResponse:
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
-            content={"success": False, "message": str(exc), "data": None},
+            content={"success": False, "message": str(exc), "detail": str(exc), "data": None},
         )
+
 
     @app.exception_handler(VideoRecordParsingError)
     async def video_parsing_handler(

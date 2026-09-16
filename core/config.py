@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 from pathlib import Path
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -78,15 +79,17 @@ class S3Settings(BaseSettings):
 
 
 class LLMSettings(BaseSettings):
-    """Self-hosted LLM configuration."""
+    """Self-hosted LLM configuration (DUT AI Gemma 4)."""
 
     model_config = _SETTINGS_CONFIG
 
     api_base_url: str = Field(
-        default="http://localhost:8000/v1", validation_alias="LLM_API_BASE_URL"
+        default="https://llm2.dutai.site/v1", validation_alias="LLM_API_BASE_URL"
     )
-    api_key: str = Field(default="dummy-key", validation_alias="LLM_API_KEY")
-    model_name: str = Field(default="default", validation_alias="LLM_MODEL_NAME")
+    api_key: str = Field(default="", validation_alias="LLM_API_KEY")
+    model_name: str = Field(
+        default="ggml-org/gemma-4-e4b-it-GGUF:Q4_0", validation_alias="LLM_MODEL_NAME"
+    )
     temperature: float = Field(default=0.7, validation_alias="LLM_TEMPERATURE")
     max_tokens: int = Field(default=2048, validation_alias="LLM_MAX_TOKENS")
     use_local_fallback: bool = Field(
@@ -94,36 +97,61 @@ class LLMSettings(BaseSettings):
     )
 
 
+
 class EmbeddingSettings(BaseSettings):
-    """Self-hosted Embedding configuration."""
+    """Text Embedding configuration (DUT AI / BAAI/bge-m3 default)."""
 
     model_config = _SETTINGS_CONFIG
 
     api_base_url: str = Field(
-        default="http://localhost:8000/v1", validation_alias="EMBEDDING_API_BASE_URL"
+        default="https://textembedding.dutai.io.vn/v1", validation_alias="EMBEDDING_API_BASE_URL"
     )
-    api_key: str = Field(default="dummy-key", validation_alias="EMBEDDING_API_KEY")
+    api_key: str = Field(default="dutaiclb", validation_alias="EMBEDDING_API_KEY")
     model_name: str = Field(
-        default="default-embed", validation_alias="EMBEDDING_MODEL_NAME"
+        default="BAAI/bge-m3", validation_alias="EMBEDDING_MODEL_NAME"
     )
-    dimension: int = Field(default=384, validation_alias="EMBEDDING_DIMENSION")
+    dimension: int = Field(default=1024, validation_alias="EMBEDDING_DIMENSION")
     use_local_fallback: bool = Field(
         default=True, validation_alias="USE_LOCAL_FALLBACK"
     )
 
 
-class VectorStoreSettings(BaseSettings):
-    """Vector database storage configuration (pgvector or ChromaDB)."""
+class RerankSettings(BaseSettings):
+    """Text Reranker configuration (DUT AI / BAAI/bge-reranker-v2-m3)."""
 
     model_config = _SETTINGS_CONFIG
 
-    store_type: str = Field(default="chroma", validation_alias="VECTOR_STORE_TYPE")
-    chroma_persist_dir: str = Field(
-        default="./data/storage/chroma", validation_alias="CHROMA_PERSIST_DIR"
+    api_base_url: str = Field(
+        default="https://textembedding.dutai.io.vn", validation_alias="RERANK_API_BASE_URL"
     )
-    chroma_collection_name: str = Field(
-        default="viral_video_patterns", validation_alias="CHROMA_COLLECTION_NAME"
+    api_key: str = Field(default="dutaiclb", validation_alias="RERANK_API_KEY")
+    model_name: str = Field(
+        default="BAAI/bge-reranker-v2-m3", validation_alias="RERANK_MODEL_NAME"
     )
+    enabled: bool = Field(default=True, validation_alias="RERANK_ENABLED")
+    candidate_k: int = Field(default=15, validation_alias="RERANK_CANDIDATE_K")
+    top_n: int = Field(default=3, validation_alias="RERANK_TOP_N")
+    timeout: float = Field(default=15.0, validation_alias="RERANK_TIMEOUT")
+    use_local_fallback: bool = Field(
+        default=True, validation_alias="RERANK_USE_FALLBACK"
+    )
+
+
+class VectorStoreSettings(BaseSettings):
+    """Vector database storage configuration (PostgreSQL pgvector)."""
+
+    model_config = _SETTINGS_CONFIG
+
+    table_name: str = Field(
+        default="viral_video_embeddings", validation_alias="PGVECTOR_TABLE_NAME"
+    )
+    store_type: str = Field(
+        default="pgvector", validation_alias="VECTOR_STORE_TYPE"
+    )
+    use_local_fallback: bool = Field(
+        default=True, validation_alias="USE_LOCAL_FALLBACK"
+    )
+
 
 
 # Cached Singleton Getters
@@ -158,6 +186,11 @@ def get_embedding_settings() -> EmbeddingSettings:
 
 
 @lru_cache
+def get_rerank_settings() -> RerankSettings:
+    return RerankSettings()
+
+
+@lru_cache
 def get_vector_store_settings() -> VectorStoreSettings:
     return VectorStoreSettings()
 
@@ -169,5 +202,7 @@ auth_settings = get_auth_settings()
 s3_settings = get_s3_settings()
 llm_settings = get_llm_settings()
 embedding_settings = get_embedding_settings()
+rerank_settings = get_rerank_settings()
 vector_store_settings = get_vector_store_settings()
+
 
