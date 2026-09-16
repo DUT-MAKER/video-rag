@@ -16,15 +16,15 @@ export function Dialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 bg-[#0d0e17]/80 backdrop-blur-sm transition-opacity"
         onClick={() => onOpenChange(false)}
       />
-      <div className="relative z-10 w-full max-w-lg rounded-xl border border-neutral-800 bg-[#121215] p-6 text-neutral-100 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="animate-in fade-in zoom-in-95 relative z-10 w-full max-w-lg rounded-xl border border-[#2e3352] bg-[#1d2035] p-6 text-[#e9e9ed] shadow-2xl duration-150">
         {children}
         <button
           type="button"
           onClick={() => onOpenChange(false)}
-          className="absolute right-4 top-4 rounded-md p-1 text-neutral-400 hover:text-neutral-100 hover:bg-neutral-800/80 transition-colors cursor-pointer"
+          className="absolute right-4 top-4 cursor-pointer rounded-md p-1 text-[#9396aa] transition-colors hover:bg-[#262a45] hover:text-[#e9e9ed]"
         >
           <X className="h-4 w-4" />
         </button>
@@ -38,7 +38,10 @@ export function DialogHeader({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("flex flex-col space-y-1.5 pb-4", className)} {...props} />
+    <div
+      className={cn("flex flex-col space-y-1.5 pb-4", className)}
+      {...props}
+    />
   );
 }
 
@@ -48,7 +51,10 @@ export function DialogTitle({
 }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h2
-      className={cn("text-base font-semibold tracking-tight text-neutral-100", className)}
+      className={cn(
+        "text-base font-semibold tracking-tight text-[#e9e9ed]",
+        className
+      )}
       {...props}
     />
   );
@@ -59,7 +65,10 @@ export function DialogDescription({
   ...props
 }: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
-    <p className={cn("text-xs text-neutral-400 leading-relaxed", className)} {...props} />
+    <p
+      className={cn("text-xs leading-relaxed text-[#9396aa]", className)}
+      {...props}
+    />
   );
 }
 
@@ -70,7 +79,7 @@ export function DialogFooter({
   return (
     <div
       className={cn(
-        "flex items-center justify-end space-x-2 pt-4 border-t border-neutral-800/60 mt-4",
+        "mt-4 flex items-center justify-end space-x-2 border-t border-[#23273e] pt-4",
         className
       )}
       {...props}

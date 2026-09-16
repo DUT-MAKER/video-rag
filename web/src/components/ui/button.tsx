@@ -4,27 +4,27 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-lg text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-400 disabled:pointer-events-none disabled:opacity-40 select-none cursor-pointer active:scale-[0.98]",
+  "inline-flex items-center justify-center rounded-lg text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9184d9] focus-visible:ring-offset-2 focus-visible:ring-offset-[#161826] disabled:pointer-events-none disabled:opacity-40 select-none cursor-pointer active:scale-[0.98]",
   {
     variants: {
       variant: {
         primary:
-          "bg-white text-neutral-950 hover:bg-neutral-200 shadow-sm font-semibold",
+          "border border-[#9184d9] text-[#e9e9ed] bg-[#9184d9]/10 hover:bg-[#9184d9]/20 hover:border-[#a89de3] hover:shadow-[0_0_12px_rgba(145,132,217,0.25)] font-semibold",
+        solid:
+          "bg-[#9184d9] text-[#161826] hover:bg-[#a89de3] font-bold shadow-xs",
         secondary:
-          "bg-neutral-900 border border-neutral-800 text-neutral-200 hover:bg-neutral-800/80 hover:text-white hover:border-neutral-700",
+          "bg-[#1d2035] border border-[#2e3352] text-[#e9e9ed] hover:bg-[#262a45] hover:border-[#3d446c]",
         outline:
-          "border border-neutral-800 bg-transparent text-neutral-300 hover:bg-neutral-900 hover:text-white",
-        ghost:
-          "text-neutral-400 hover:text-neutral-100 hover:bg-neutral-800/60",
-        hook:
-          "bg-orange-500/10 border border-orange-500/25 text-orange-400 hover:bg-orange-500/20 hover:border-orange-500/40",
+          "border border-[#2e3352] text-[#e9e9ed] bg-transparent hover:bg-[#1d2035] hover:border-[#3d446c]",
+        ghost: "text-[#9396aa] hover:text-[#e9e9ed] hover:bg-[#1d2035]",
+        hook: "bg-orange-500/10 border border-orange-400/30 text-orange-300 hover:bg-orange-500/20 hover:border-orange-400/50 font-semibold",
         destructive:
-          "bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20",
+          "bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20",
       },
       size: {
-        sm: "h-8 px-2.5 gap-1.5",
+        sm: "h-8 px-3 gap-1.5",
         md: "h-9 px-3.5 gap-2",
-        lg: "h-10 px-4 gap-2 text-sm",
+        lg: "h-11 px-6 gap-2 text-sm",
         icon: "h-8 w-8",
       },
     },
@@ -36,7 +36,8 @@ const buttonVariants = cva(
 );
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+  extends
+    React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
 }

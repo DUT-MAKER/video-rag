@@ -1,20 +1,25 @@
 "use client";
 
 import * as React from "react";
-import {
-  Sparkles,
-  Zap,
-  Check,
-  Download,
-  ArrowRight,
-} from "lucide-react";
+import { Check, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import { generateViralScript } from "@/lib/api";
-import type { GenerateScriptPayload, HookType, PlatformTarget, ViralScript } from "@/lib/types";
+import type {
+  GenerateScriptPayload,
+  HookType,
+  PlatformTarget,
+  ViralScript,
+} from "@/lib/types";
 
 export function ScriptGeneratorForm() {
   const [topic, setTopic] = React.useState("");
@@ -27,7 +32,8 @@ export function ScriptGeneratorForm() {
   const [topK, setTopK] = React.useState<number>(3);
 
   const [isLoading, setIsLoading] = React.useState(false);
-  const [generatedScript, setGeneratedScript] = React.useState<ViralScript | null>(null);
+  const [generatedScript, setGeneratedScript] =
+    React.useState<ViralScript | null>(null);
   const [copiedKey, setCopiedKey] = React.useState<string | null>(null);
 
   const handleGenerate = async (e: React.FormEvent) => {
@@ -48,7 +54,9 @@ export function ScriptGeneratorForm() {
       setGeneratedScript(result);
     } catch (err) {
       console.error("Failed to generate script:", err);
-      alert("Không thể sinh kịch bản. Hãy đảm bảo backend đang chạy ở http://localhost:8000.");
+      alert(
+        "Không thể sinh kịch bản. Hãy đảm bảo backend đang chạy ở http://localhost:8000."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -74,38 +82,38 @@ export function ScriptGeneratorForm() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-8">
+    <div className="mx-auto max-w-6xl space-y-8 p-6 text-white">
       {/* Header */}
-      <div className="space-y-1.5">
-        <div className="flex items-center space-x-2 text-orange-400">
-          <Zap className="w-4 h-4" />
-          <span className="text-xs font-semibold uppercase tracking-wider">
-            1-Click Generation Engine
-          </span>
-        </div>
-        <h1 className="text-2xl font-bold tracking-tight text-white">
+      <div className="space-y-1.5 border-b border-zinc-800 pb-5">
+        <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-zinc-400">
+          1-Click Generation Engine
+        </span>
+        <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
           Sinh Kịch Bản Video Viral Chuẩn Từng Giây
         </h1>
-        <p className="text-xs text-neutral-400 max-w-2xl leading-relaxed">
-          Áp dụng công thức Hook 3s giữ chân người xem cao nhất từ kho video triệu view kết hợp AI sinh lời thoại, visual B-roll và prompt tạo ảnh/video.
+        <p className="max-w-2xl text-xs leading-relaxed text-zinc-300">
+          Áp dụng công thức Hook 3s giữ chân người xem cao nhất từ kho video
+          triệu view kết hợp AI sinh lời thoại, visual B-roll và prompt tạo
+          ảnh/video.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
         {/* Left Form: 5 cols */}
-        <div className="lg:col-span-5 space-y-6">
+        <div className="space-y-6 lg:col-span-5">
           <Card>
             <CardHeader>
               <CardTitle>Cấu Hình Kịch Bản</CardTitle>
               <CardDescription>
-                Điền thông tin định hướng kịch bản để AI truy xuất pattern phù hợp
+                Điền thông tin định hướng kịch bản để AI truy xuất pattern phù
+                hợp
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleGenerate} className="space-y-4">
                 {/* Topic */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-neutral-300">
+                  <label className="text-xs font-bold text-zinc-200">
                     Chủ đề video (Topic) *
                   </label>
                   <Textarea
@@ -119,7 +127,7 @@ export function ScriptGeneratorForm() {
 
                 {/* Target Audience */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-neutral-300">
+                  <label className="text-xs font-bold text-zinc-200">
                     Đối tượng người xem (Target Audience)
                   </label>
                   <Input
@@ -131,7 +139,7 @@ export function ScriptGeneratorForm() {
 
                 {/* Platform */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-neutral-300">
+                  <label className="text-xs font-bold text-zinc-200">
                     Nền tảng mục tiêu
                   </label>
                   <div className="grid grid-cols-3 gap-2">
@@ -146,10 +154,10 @@ export function ScriptGeneratorForm() {
                         key={p.id}
                         type="button"
                         onClick={() => setPlatform(p.id)}
-                        className={`py-2 px-3 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
+                        className={`cursor-pointer rounded-lg border px-3 py-2 text-xs transition-all ${
                           platform === p.id
-                            ? "bg-white text-neutral-950 border-white font-semibold"
-                            : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white"
+                            ? "border-white bg-white font-bold text-black"
+                            : "border-zinc-700 bg-zinc-900 font-medium text-zinc-300 hover:border-zinc-500 hover:text-white"
                         }`}
                       >
                         {p.label}
@@ -160,7 +168,7 @@ export function ScriptGeneratorForm() {
 
                 {/* Duration */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-neutral-300">
+                  <label className="text-xs font-bold text-zinc-200">
                     Thời lượng dự kiến ({duration}s)
                   </label>
                   <div className="grid grid-cols-4 gap-2">
@@ -169,10 +177,10 @@ export function ScriptGeneratorForm() {
                         key={sec}
                         type="button"
                         onClick={() => setDuration(sec)}
-                        className={`py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer ${
+                        className={`cursor-pointer rounded-lg border py-1.5 font-mono text-xs transition-all ${
                           duration === sec
-                            ? "bg-neutral-100 text-neutral-950 border-neutral-100 font-semibold"
-                            : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white"
+                            ? "border-white bg-white font-bold text-black"
+                            : "border-zinc-700 bg-zinc-900 font-medium text-zinc-300 hover:border-zinc-500 hover:text-white"
                         }`}
                       >
                         {sec}s
@@ -183,25 +191,35 @@ export function ScriptGeneratorForm() {
 
                 {/* Hook Style */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-neutral-300">
+                  <label className="text-xs font-bold text-zinc-200">
                     Công thức Hook mở đầu
                   </label>
                   <select
                     value={hookStyle}
                     onChange={(e) => setHookStyle(e.target.value as HookType)}
-                    className="w-full h-9 rounded-lg border border-neutral-800 bg-[#121215] px-3 text-xs text-neutral-200 outline-none cursor-pointer focus:border-neutral-600"
+                    className="h-9 w-full cursor-pointer rounded-lg border border-zinc-700 bg-[#16161a] px-3 text-xs font-medium text-white outline-none focus:border-zinc-400"
                   >
-                    <option value="curiosity_gap">Curiosity Gap (Khoảng trống tò mò)</option>
-                    <option value="problem_agitate">Problem Agitate (Nêu nỗi đau gay gắt)</option>
-                    <option value="contrarian">Contrarian (Đi ngược số đông)</option>
-                    <option value="shocking_fact">Shocking Fact (Sự thật gây sốc)</option>
-                    <option value="story_loop">Story Loop (Mở vòng lặp câu chuyện)</option>
+                    <option value="curiosity_gap">
+                      Curiosity Gap (Khoảng trống tò mò)
+                    </option>
+                    <option value="problem_agitate">
+                      Problem Agitate (Nêu nỗi đau gay gắt)
+                    </option>
+                    <option value="contrarian">
+                      Contrarian (Đi ngược số đông)
+                    </option>
+                    <option value="shocking_fact">
+                      Shocking Fact (Sự thật gây sốc)
+                    </option>
+                    <option value="story_loop">
+                      Story Loop (Mở vòng lặp câu chuyện)
+                    </option>
                   </select>
                 </div>
 
                 {/* Top-K Patterns */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-neutral-300">
+                  <label className="text-xs font-bold text-zinc-200">
                     Mẫu RAG tham chiếu từ pgvector ({topK} patterns)
                   </label>
                   <div className="flex items-center gap-3">
@@ -211,29 +229,23 @@ export function ScriptGeneratorForm() {
                       max={5}
                       value={topK}
                       onChange={(e) => setTopK(Number(e.target.value))}
-                      className="flex-1 accent-neutral-200 cursor-pointer"
+                      className="flex-1 cursor-pointer accent-zinc-200"
                     />
-                    <span className="font-mono text-xs text-neutral-300">{topK}</span>
+                    <span className="rounded border border-zinc-700 bg-zinc-800 px-2 py-0.5 font-mono text-xs font-bold text-white">
+                      {topK}
+                    </span>
                   </div>
                 </div>
 
                 <Button
                   type="submit"
                   disabled={isLoading || !topic.trim()}
-                  className="w-full mt-2"
+                  className="mt-2 w-full"
                   size="lg"
                 >
-                  {isLoading ? (
-                    <span className="flex items-center space-x-2">
-                      <Sparkles className="w-4 h-4 animate-spin" />
-                      <span>Đang truy xuất RAG & Sinh kịch bản...</span>
-                    </span>
-                  ) : (
-                    <span className="flex items-center space-x-2">
-                      <Sparkles className="w-4 h-4" />
-                      <span>1-Click Generate Script</span>
-                    </span>
-                  )}
+                  {isLoading
+                    ? "Đang truy xuất RAG & Sinh kịch bản..."
+                    : "1-Click Generate Script"}
                 </Button>
               </form>
             </CardContent>
@@ -241,103 +253,112 @@ export function ScriptGeneratorForm() {
         </div>
 
         {/* Right Output: 7 cols */}
-        <div className="lg:col-span-7 space-y-6">
+        <div className="space-y-6 lg:col-span-7">
           {!generatedScript ? (
-            <div className="h-full min-h-[420px] rounded-xl border border-neutral-800/80 bg-[#121215]/50 flex flex-col items-center justify-center text-center p-8 space-y-3">
-              <div className="w-12 h-12 rounded-xl border border-neutral-800 bg-neutral-900 flex items-center justify-center">
-                <ArrowRight className="w-5 h-5 text-neutral-600" />
-              </div>
-              <p className="text-xs font-medium text-neutral-300">
+            <div className="flex h-full min-h-[420px] flex-col items-center justify-center space-y-2 rounded-xl border border-zinc-700 bg-[#141418] p-8 text-center">
+              <p className="text-sm font-bold text-white">
                 Kịch bản sinh tự động sẽ hiển thị tại đây
               </p>
-              <p className="text-[11px] text-neutral-500 max-w-sm">
-                Điền chủ đề ở khung bên trái và bấm nút Tạo Kịch Bản để AI thiết lập Hook, Storyboard và Prompt chi tiết.
+              <p className="max-w-sm text-xs leading-relaxed text-zinc-300">
+                Điền chủ đề ở khung bên trái và bấm nút Tạo Kịch Bản để AI thiết
+                lập Hook, Storyboard và Prompt chi tiết.
               </p>
             </div>
           ) : (
-            <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="animate-in fade-in space-y-6 duration-300">
               {/* Script Header Bar */}
-              <div className="p-4 rounded-xl border border-neutral-800 bg-[#121215] flex items-center justify-between">
+              <div className="flex items-center justify-between rounded-xl border border-zinc-700 bg-[#141418] p-4">
                 <div>
-                  <h2 className="text-base font-semibold text-white">
+                  <h2 className="text-base font-bold text-white">
                     {generatedScript.title}
                   </h2>
-                  <div className="flex items-center space-x-2 pt-1">
+                  <div className="flex items-center space-x-2 pt-1.5">
                     <Badge variant="mono">{generatedScript.platform}</Badge>
-                    <Badge variant="mono">{generatedScript.target_duration_seconds}s</Badge>
-                    <Badge variant="secondary">{generatedScript.target_niche}</Badge>
+                    <Badge variant="mono">
+                      {generatedScript.target_duration_seconds}s
+                    </Badge>
+                    <Badge variant="secondary">
+                      {generatedScript.target_niche}
+                    </Badge>
                   </div>
                 </div>
 
                 <div className="flex items-center space-x-2">
                   <Button variant="secondary" size="sm" onClick={downloadJson}>
-                    <Download className="w-3.5 h-3.5" />
+                    <Download className="mr-1 h-3.5 w-3.5" />
                     <span>JSON</span>
                   </Button>
                 </div>
               </div>
 
               {/* Hook Card */}
-              <div className="p-4 rounded-xl border border-orange-500/20 bg-orange-500/[0.03] space-y-2.5">
+              <div className="space-y-2.5 rounded-xl border border-orange-400/40 bg-orange-500/10 p-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-1.5 text-orange-400">
-                    <Zap className="w-4 h-4" />
-                    <span className="text-xs font-semibold uppercase tracking-wider">
-                      Hook Giữ Chân 3s Đầu
-                    </span>
-                  </div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-orange-300">
+                    Hook Giữ Chân 3s Đầu
+                  </span>
                   <Badge variant="hook">{generatedScript.hook.hook_type}</Badge>
                 </div>
 
-                <p className="text-xs text-white font-medium bg-black/50 p-3 rounded-lg border border-neutral-800 leading-relaxed italic">
+                <p className="rounded-lg border border-zinc-700 bg-black/60 p-3 text-xs font-semibold italic leading-relaxed text-white">
                   &ldquo;{generatedScript.hook.script}&rdquo;
                 </p>
 
-                <p className="text-[11px] text-neutral-400">
-                  <span className="font-semibold text-neutral-300">Visual:</span>{" "}
+                <p className="text-xs text-zinc-200">
+                  <span className="font-bold text-white">Visual:</span>{" "}
                   {generatedScript.hook.visual_action}
                 </p>
 
-                <p className="text-[10px] text-orange-300/90 leading-relaxed border-t border-orange-500/10 pt-2">
-                  💡 <span className="font-semibold text-orange-200">Retention:</span>{" "}
+                <p className="border-t border-orange-400/20 pt-2 text-xs leading-relaxed text-orange-200">
+                  <span className="font-bold text-white">Tâm lý giữ chân:</span>{" "}
                   {generatedScript.hook.retention_rationale}
                 </p>
               </div>
 
               {/* Storyboard List */}
               <div className="space-y-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
+                <span className="block text-xs font-bold uppercase tracking-wider text-zinc-300">
                   Storyboard Phân Cảnh ({generatedScript.scenes.length})
-                </h3>
+                </span>
 
                 {generatedScript.scenes.map((scene) => (
                   <div
                     key={scene.scene_number}
-                    className="p-3.5 rounded-xl border border-neutral-800 bg-[#121215] space-y-2.5"
+                    className="space-y-2.5 rounded-xl border border-zinc-700 bg-[#141418] p-4"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-white">
+                      <span className="text-xs font-bold text-white">
                         Cảnh {scene.scene_number}
                       </span>
                       <Badge variant="mono">{scene.time_range}</Badge>
                     </div>
 
-                    <p className="text-xs text-neutral-200 font-medium">
-                      {scene.narration}
-                    </p>
+                    <div>
+                      <span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                        Lời thoại
+                      </span>
+                      <p className="text-xs font-medium leading-relaxed text-white">
+                        {scene.narration}
+                      </p>
+                    </div>
 
-                    <p className="text-[11px] text-neutral-400">
-                      <span className="text-neutral-500 font-semibold">B-Roll:</span>{" "}
-                      {scene.visual_action}
-                    </p>
+                    <div>
+                      <span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                        Visual B-Roll
+                      </span>
+                      <p className="text-xs leading-relaxed text-zinc-200">
+                        {scene.visual_action}
+                      </p>
+                    </div>
 
                     {scene.audio_sfx_cue && (
-                      <p className="text-[11px] text-neutral-500">
-                        <span className="font-semibold">SFX:</span> {scene.audio_sfx_cue}
+                      <p className="text-xs text-zinc-300">
+                        <span className="font-bold text-zinc-400">SFX:</span>{" "}
+                        {scene.audio_sfx_cue}
                       </p>
                     )}
 
-                    <div className="pt-2 border-t border-neutral-800/60 flex gap-2">
+                    <div className="flex gap-2 border-t border-zinc-700/80 pt-2">
                       {scene.image_prompt && (
                         <button
                           type="button"
@@ -347,12 +368,14 @@ export function ScriptGeneratorForm() {
                               `g_img_${scene.scene_number}`
                             )
                           }
-                          className="flex-1 py-1.5 px-2 rounded-md bg-neutral-900 border border-neutral-800 text-[10px] text-neutral-300 hover:text-white transition-all cursor-pointer flex items-center justify-center space-x-1"
+                          className="flex flex-1 cursor-pointer items-center justify-center space-x-1 rounded-md border border-zinc-600 bg-zinc-800 px-3 py-1.5 text-[11px] font-medium text-zinc-100 transition-all hover:bg-zinc-700"
                         >
                           {copiedKey === `g_img_${scene.scene_number}` ? (
                             <>
-                              <Check className="w-3 h-3 text-emerald-400" />
-                              <span className="text-emerald-400">Copied Prompt</span>
+                              <Check className="mr-1 h-3.5 w-3.5 text-emerald-400" />
+                              <span className="font-bold text-emerald-400">
+                                Copied Prompt
+                              </span>
                             </>
                           ) : (
                             <span>Copy Midjourney Prompt</span>
@@ -369,12 +392,14 @@ export function ScriptGeneratorForm() {
                               `g_vid_${scene.scene_number}`
                             )
                           }
-                          className="flex-1 py-1.5 px-2 rounded-md bg-neutral-900 border border-neutral-800 text-[10px] text-neutral-300 hover:text-white transition-all cursor-pointer flex items-center justify-center space-x-1"
+                          className="flex flex-1 cursor-pointer items-center justify-center space-x-1 rounded-md border border-zinc-600 bg-zinc-800 px-3 py-1.5 text-[11px] font-medium text-zinc-100 transition-all hover:bg-zinc-700"
                         >
                           {copiedKey === `g_vid_${scene.scene_number}` ? (
                             <>
-                              <Check className="w-3 h-3 text-emerald-400" />
-                              <span className="text-emerald-400">Copied Prompt</span>
+                              <Check className="mr-1 h-3.5 w-3.5 text-emerald-400" />
+                              <span className="font-bold text-emerald-400">
+                                Copied Prompt
+                              </span>
                             </>
                           ) : (
                             <span>Copy Veo/Kling Prompt</span>

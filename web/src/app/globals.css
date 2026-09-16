@@ -1,60 +1,109 @@
 @import "tailwindcss";
 
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent-hook: var(--accent-hook);
+  --color-accent-success: var(--accent-success);
+  --color-section: var(--section);
+}
+
 :root {
-  --background: #09090b;
-  --foreground: #fafafa;
-  --surface: #121215;
-  --surface-hover: #1a1a1e;
-  --surface-elevated: #18181b;
-  --muted: #a1a1aa;
-  --muted-foreground: #71717a;
-  --border: #27272a;
-  --border-subtle: #1f1f23;
-  --primary: #fafafa;
-  --primary-foreground: #09090b;
-  --accent-hook: #f97316;
-  --accent-ai: #a855f7;
-  --accent-success: #10b981;
+  /* Nocturne Palette */
+  --background: #161826;
+  --foreground: #e9e9ed;
+  --surface: #1d2035;
+  --surface-hover: #262a45;
+  --surface-elevated: #22263d;
+  --muted: #c5c7d5;
+  --muted-foreground: #9396aa;
+  --border: #2e3352;
+  --border-subtle: #23273e;
+
+  /* Nocturne Blurple Accent */
+  --accent: #9184d9;
+  --accent-foreground: #ffffff;
+  --primary: #9184d9;
+  --primary-foreground: #161826;
+
+  /* Domain-Specific Accents */
+  --accent-hook: #fb923c;
+  --accent-ai: #9184d9;
+  --accent-success: #34d399;
+  --section: #20233b;
 }
 
-* {
-  box-sizing: border-box;
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--background);
+    color: var(--foreground);
+    overflow-x: hidden;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 }
 
-html,
-body {
-  min-height: 100%;
-}
-
-body {
-  margin: 0;
-  background: var(--background);
-  color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  overflow-x: hidden;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-/* Minimalist Studio Scrollbars */
+/* Nocturne Minimalist Scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--background);
 }
 ::-webkit-scrollbar-thumb {
-  background: #27272a;
+  background: var(--border);
   border-radius: 9999px;
+  border: 1px solid var(--background);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
+  background: #3d446c;
 }
 
+/* Nocturne Utilities */
 .font-mono-code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+}
+
+.lighten {
+  mix-blend-mode: lighten;
+}
+
+.divider-fade {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--border) 48px,
+    var(--border) calc(100% - 48px),
+    transparent 100%
+  );
 }

@@ -1,14 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {
-  Menu,
-  Film,
-  Sparkles,
-  Database,
-  Cpu,
-  BookOpen,
-} from "lucide-react";
+import { Menu } from "lucide-react";
 import { SessionsSidebar } from "./sessions-sidebar";
 import { ChatFeed } from "./chat-feed";
 import { StoryboardInspector } from "./storyboard-inspector";
@@ -16,21 +9,25 @@ import {
   deleteChatSession,
   getChatSessions,
   getSessionDetail,
-  ingestKnowledge,
   sendChatMessage,
+  streamChatMessage,
 } from "@/lib/api";
 import type { ChatMessage, ViralScript } from "@/lib/types";
 
 export function StudioView() {
   const [sessions, setSessions] = React.useState<string[]>([]);
-  const [activeSessionId, setActiveSessionId] = React.useState<string | null>(null);
+  const [activeSessionId, setActiveSessionId] = React.useState<string | null>(
+    null
+  );
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
-  const [currentScript, setCurrentScript] = React.useState<ViralScript | null>(null);
+  const [currentScript, setCurrentScript] = React.useState<ViralScript | null>(
+    null
+  );
   const [isLoading, setIsLoading] = React.useState(false);
-  const [isRefreshingKnowledge, setIsRefreshingKnowledge] = React.useState(false);
 
   const [showSidebar, setShowSidebar] = React.useState(true);
   const [showInspector, setShowInspector] = React.useState(true);
+  const abortControllerRef = React.useRef<AbortController | null>(null);
 
   const selectSession = React.useCallback(async (sessionId: string) => {
     setActiveSessionId(sessionId);
@@ -50,15 +47,20 @@ export function StudioView() {
     }
   }, []);
 
-  // Load sessions on mount
+  const hasLoadedInitialSessionsRef = React.useRef(false);
+
+  // Load sessions on mount once
   React.useEffect(() => {
     let ignore = false;
     getChatSessions()
       .then((sessionIds) => {
         if (!ignore) {
           setSessions(sessionIds);
-          if (sessionIds.length > 0 && !activeSessionId) {
-            selectSession(sessionIds[0]);
+          if (!hasLoadedInitialSessionsRef.current) {
+            hasLoadedInitialSessionsRef.current = true;
+            if (sessionIds.length > 0) {
+              selectSession(sessionIds[0]);
+            }
           }
         }
       })
@@ -69,9 +71,12 @@ export function StudioView() {
     return () => {
       ignore = true;
     };
-  }, [activeSessionId, selectSession]);
+  }, [selectSession]);
 
   const handleNewSession = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
     setActiveSessionId(null);
     setMessages([]);
     setCurrentScript(null);
@@ -86,131 +91,217 @@ export function StudioView() {
     }
   };
 
-  const handleRefreshKnowledge = async () => {
-    setIsRefreshingKnowledge(true);
-    try {
-      await ingestKnowledge();
-      alert("Đã đồng bộ lại Knowledge Store pgvector thành công!");
-    } catch (err) {
-      console.error("Ingest failed:", err);
-    } finally {
-      setIsRefreshingKnowledge(false);
-    }
-  };
-
   const handleSendMessage = async (text: string, topK: number) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     const userMsg: ChatMessage = {
       role: "user",
       content: text,
       timestamp: Date.now() / 1000,
     };
-    setMessages((prev) => [...prev, userMsg]);
+    const initialAssistantMsg: ChatMessage = {
+      role: "assistant",
+      content: "",
+      timestamp: Date.now() / 1000,
+      referenced_patterns: [],
+    };
+
+    setMessages((prev) => [...prev, userMsg, initialAssistantMsg]);
     setIsLoading(true);
 
+    let resolvedSessionId = activeSessionId;
+    let hasReceivedToken = false;
+
     try {
-      const res = await sendChatMessage({
-        message: text,
-        session_id: activeSessionId || undefined,
-        top_k_references: topK,
+      await streamChatMessage({
+        payload: {
+          message: text,
+          session_id: activeSessionId || undefined,
+          top_k_references: topK,
+        },
+        signal: controller.signal,
+        onMetadata: (meta) => {
+          if (meta.session_id) {
+            resolvedSessionId = meta.session_id;
+            if (!activeSessionId) {
+              setActiveSessionId(meta.session_id);
+            }
+            setSessions((prev) => [
+              meta.session_id,
+              ...prev.filter((id) => id !== meta.session_id),
+            ]);
+          }
+          if (meta.referenced_patterns && meta.referenced_patterns.length > 0) {
+            setMessages((prev) => {
+              const lastIdx = prev.length - 1;
+              if (lastIdx >= 0 && prev[lastIdx].role === "assistant") {
+                const updated = [...prev];
+                updated[lastIdx] = {
+                  ...updated[lastIdx],
+                  referenced_patterns: meta.referenced_patterns,
+                };
+                return updated;
+              }
+              return prev;
+            });
+          }
+        },
+        onToken: (token) => {
+          hasReceivedToken = true;
+          setMessages((prev) => {
+            const lastIdx = prev.length - 1;
+            if (lastIdx >= 0 && prev[lastIdx].role === "assistant") {
+              const updated = [...prev];
+              updated[lastIdx] = {
+                ...updated[lastIdx],
+                content: updated[lastIdx].content + token,
+              };
+              return updated;
+            }
+            return prev;
+          });
+        },
+        onDone: async (finalSessionId) => {
+          const sid = finalSessionId || resolvedSessionId;
+          if (sid) {
+            try {
+              const detail = await getSessionDetail(sid);
+              if (detail?.current_script) {
+                setCurrentScript(detail.current_script);
+                setShowInspector(true);
+              }
+            } catch (err) {
+              console.error(
+                "Failed to fetch session detail after stream:",
+                err
+              );
+            }
+          }
+        },
       });
+    } catch (err: unknown) {
+      if (controller.signal.aborted) return;
+      console.warn(
+        "SSE stream failed or interrupted, falling back to sync:",
+        err
+      );
 
-      if (!activeSessionId && res.session_id) {
-        setActiveSessionId(res.session_id);
-        setSessions((prev) => [res.session_id, ...prev.filter((id) => id !== res.session_id)]);
-      }
+      // If no token was received yet, try fallback to sync sendChatMessage
+      if (!hasReceivedToken) {
+        try {
+          const res = await sendChatMessage({
+            message: text,
+            session_id: activeSessionId || undefined,
+            top_k_references: topK,
+          });
 
-      const assistantMsg: ChatMessage = {
-        role: "assistant",
-        content: res.reply,
-        timestamp: res.created_at,
-        referenced_patterns: res.referenced_patterns,
-      };
+          if (!activeSessionId && res.session_id) {
+            setActiveSessionId(res.session_id);
+            setSessions((prev) => [
+              res.session_id,
+              ...prev.filter((id) => id !== res.session_id),
+            ]);
+          }
 
-      setMessages((prev) => [...prev, assistantMsg]);
+          setMessages((prev) => {
+            const lastIdx = prev.length - 1;
+            if (lastIdx >= 0 && prev[lastIdx].role === "assistant") {
+              const updated = [...prev];
+              updated[lastIdx] = {
+                role: "assistant",
+                content: res.reply,
+                timestamp: res.created_at,
+                referenced_patterns: res.referenced_patterns,
+              };
+              return updated;
+            }
+            return prev;
+          });
 
-      // Check if session has a newly generated script
-      if (res.session_id) {
-        const detail = await getSessionDetail(res.session_id);
-        if (detail?.current_script) {
-          setCurrentScript(detail.current_script);
-          setShowInspector(true);
+          if (res.session_id) {
+            const detail = await getSessionDetail(res.session_id);
+            if (detail?.current_script) {
+              setCurrentScript(detail.current_script);
+              setShowInspector(true);
+            }
+          }
+          return;
+        } catch (syncErr) {
+          console.error("Sync fallback also failed:", syncErr);
         }
       }
-    } catch (err) {
-      console.error("Chat turn failed:", err);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "⚠️ Không thể kết nối tới Backend API. Hãy kiểm tra dịch vụ backend đang chạy ở cổng 8000.",
-          timestamp: Date.now() / 1000,
-        },
-      ]);
+
+      // If tokens were partially streamed or fallback failed, show error
+      setMessages((prev) => {
+        const lastIdx = prev.length - 1;
+        if (lastIdx >= 0 && prev[lastIdx].role === "assistant") {
+          const updated = [...prev];
+          const currentContent = updated[lastIdx].content;
+          updated[lastIdx] = {
+            ...updated[lastIdx],
+            content: currentContent
+              ? currentContent + "\n\n*(Mất kết nối stream với máy chủ)*"
+              : "Không thể kết nối với AI Assistant. Hãy chắc chắn Backend FastAPI đang chạy tại http://localhost:8000.",
+          };
+          return updated;
+        }
+        return prev;
+      });
     } finally {
       setIsLoading(false);
+      abortControllerRef.current = null;
     }
   };
 
+  React.useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
   return (
-    <div className="flex flex-col h-[calc(100vh-3.5rem)] w-full overflow-hidden bg-[#09090b] text-neutral-100">
+    <div className="bg-background text-foreground flex h-[calc(100vh-3.5rem)] w-full flex-col overflow-hidden">
       {/* Studio Subheader */}
-      <div className="h-11 border-b border-neutral-800 bg-[#0c0c0e] px-4 flex items-center justify-between shrink-0 select-none">
+      <div className="border-border bg-surface flex h-11 shrink-0 select-none items-center justify-between border-b px-4">
         <div className="flex items-center space-x-3">
           <button
             type="button"
             onClick={() => setShowSidebar((prev) => !prev)}
-            className="p-1.5 rounded-md text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
+            className="text-muted-foreground hover:text-foreground hover:bg-surface-hover cursor-pointer rounded-md p-1.5 transition-colors"
             title="Toggle Sessions Sidebar"
           >
-            <Menu className="w-4 h-4" />
+            <Menu className="h-4 w-4" />
           </button>
 
-          <div className="flex items-center space-x-2">
-            <Sparkles className="w-3.5 h-3.5 text-neutral-300" />
-            <span className="text-xs font-semibold text-neutral-200">
-              Conversational Studio
-            </span>
-          </div>
+          <span className="text-foreground text-xs font-semibold tracking-tight">
+            Conversational Studio
+          </span>
         </div>
 
-        {/* System Status Badges */}
-        <div className="hidden sm:flex items-center space-x-2 text-[11px]">
-          <div className="flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-neutral-900 border border-neutral-800 text-emerald-400 font-mono">
-            <Database className="w-3 h-3 text-emerald-500" />
-            <span>pgvector</span>
-          </div>
-
-          <div className="flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-neutral-900 border border-neutral-800 text-neutral-300 font-mono">
-            <Cpu className="w-3 h-3 text-neutral-400" />
-            <span>DUT AI LLM</span>
-          </div>
-        </div>
-
-        {/* Action button */}
+        {/* Right Actions */}
         <div className="flex items-center space-x-2">
           <button
             type="button"
             onClick={() => setShowInspector((prev) => !prev)}
-            className="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white text-xs font-medium border border-neutral-800 transition-all cursor-pointer"
+            className={`cursor-pointer rounded-md border px-2.5 py-1 text-xs font-medium transition-all ${
+              showInspector
+                ? "bg-background text-foreground border-accent font-semibold"
+                : "bg-background text-muted-foreground border-border hover:bg-surface-hover hover:text-foreground"
+            }`}
           >
-            <Film className="w-3.5 h-3.5 text-orange-400" />
-            <span>Script Inspector</span>
+            Script Inspector
           </button>
-
-          <a
-            href="http://localhost:8000/docs"
-            target="_blank"
-            rel="noreferrer"
-            className="p-1.5 rounded-md text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
-            title="Open FastAPI Docs"
-          >
-            <BookOpen className="w-3.5 h-3.5" />
-          </a>
         </div>
       </div>
 
       {/* Main 3 Columns */}
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="relative flex flex-1 overflow-hidden">
         {showSidebar && (
           <SessionsSidebar
             sessions={sessions}
@@ -218,8 +309,6 @@ export function StudioView() {
             onSelectSession={selectSession}
             onNewSession={handleNewSession}
             onDeleteSession={handleDeleteSession}
-            onRefreshKnowledge={handleRefreshKnowledge}
-            isRefreshing={isRefreshingKnowledge}
           />
         )}
 

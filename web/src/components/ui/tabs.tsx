@@ -6,7 +6,9 @@ interface TabsContextValue {
   setActiveTab: (value: string) => void;
 }
 
-const TabsContext = React.createContext<TabsContextValue | undefined>(undefined);
+const TabsContext = React.createContext<TabsContextValue | undefined>(
+  undefined
+);
 
 export function Tabs({
   defaultValue,
@@ -46,7 +48,7 @@ export function TabsList({
   return (
     <div
       className={cn(
-        "inline-flex h-9 items-center justify-center rounded-lg bg-neutral-900/90 p-1 border border-neutral-800 text-neutral-400 text-xs",
+        "inline-flex h-9 items-center justify-center rounded-lg border border-[#2e3352] bg-[#161826] p-1 text-xs text-[#9396aa]",
         className
       )}
     >
@@ -74,10 +76,10 @@ export function TabsTrigger({
       type="button"
       onClick={() => ctx.setActiveTab(value)}
       className={cn(
-        "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium transition-all select-none cursor-pointer",
+        "inline-flex cursor-pointer select-none items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium transition-all",
         isActive
-          ? "bg-[#18181b] text-neutral-100 shadow-sm border border-neutral-700/60 font-semibold"
-          : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/40",
+          ? "border border-[#2e3352] bg-[#1d2035] font-semibold text-[#e9e9ed] shadow-sm"
+          : "text-[#9396aa] hover:bg-[#1d2035]/50 hover:text-[#e9e9ed]",
         className
       )}
     >

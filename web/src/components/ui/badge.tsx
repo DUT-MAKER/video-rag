@@ -7,20 +7,16 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default:
-          "border-neutral-800 bg-neutral-900 text-neutral-300",
-        secondary:
-          "border-neutral-800/60 bg-neutral-800/40 text-neutral-400",
-        outline:
-          "border-neutral-700/60 text-neutral-300 bg-transparent",
-        hook:
-          "border-orange-500/20 bg-orange-500/10 text-orange-400 font-semibold tracking-wide",
-        ai:
-          "border-purple-500/20 bg-purple-500/10 text-purple-300 font-medium",
+        default: "border-[#2e3352] bg-[#1d2035] text-[#e9e9ed]",
+        secondary: "border-[#23273e] bg-[#161826] text-[#9396aa]",
+        outline: "border-[#2e3352] text-[#e9e9ed] bg-transparent",
+        accent:
+          "border-[#9184d9]/50 bg-[#9184d9]/15 text-[#c5bdf0] font-semibold",
+        ai: "border-[#9184d9]/50 bg-[#9184d9]/15 text-[#c5bdf0] font-semibold",
+        hook: "border-orange-400/40 bg-orange-500/10 text-orange-200 font-semibold tracking-wide",
         success:
-          "border-emerald-500/20 bg-emerald-500/10 text-emerald-400 font-medium",
-        mono:
-          "font-mono text-[10px] tracking-wider uppercase border-neutral-800 bg-black/40 text-neutral-400",
+          "border-emerald-400/40 bg-emerald-500/10 text-emerald-200 font-semibold",
+        mono: "font-mono text-[10px] tracking-wider uppercase border-[#2e3352] bg-[#1d2035] text-[#e9e9ed]",
       },
     },
     defaultVariants: {
@@ -30,7 +26,8 @@ const badgeVariants = cva(
 );
 
 export interface BadgeProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends
+    React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof badgeVariants> {}
 
 export function Badge({ className, variant, ...props }: BadgeProps) {
