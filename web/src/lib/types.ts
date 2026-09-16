@@ -10,13 +10,7 @@ export type HookType =
 
 export type MessageRole = "user" | "assistant" | "system";
 
-export type ChatIntent =
-  | "general_chat"
-  | "generate_script"
-  | "refine_hook"
-  | "refine_scene"
-  | "search_benchmark"
-  | "export_prompts";
+export type ChatIntent = "general_chat" | "generate_script";
 
 export interface ReferencedPattern {
   original_caption: string;
