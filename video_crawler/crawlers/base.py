@@ -32,10 +32,17 @@ class BrowserPlatformCrawler:
             if response and response.status in {401, 403}:
                 raise RuntimeError(f"ACCESS_DENIED: HTTP {response.status}")
             await assert_page_access(page)
-            records = await self.parse(page)
+            records: dict[str, DiscoveredVideo] = {}
+            for scroll_number in range(request.max_scrolls + 1):
+                for record in await self.parse(page):
+                    records[record.canonical_url] = record
+                if len(records) >= request.max_items_per_platform or scroll_number == request.max_scrolls:
+                    break
+                await page.mouse.wheel(0, 1000)
+                await page.wait_for_timeout(int(request.scroll_pause_seconds * 1000))
             if not records:
                 raise RuntimeError("PARSER_BROKEN: no video records found")
-            for record in records[: request.max_items_per_platform]:
+            for record in list(records.values())[: request.max_items_per_platform]:
                 yield record
 
 

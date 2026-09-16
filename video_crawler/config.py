@@ -34,6 +34,10 @@ class CrawlerSettings(BaseSettings):
     minio_prefix: str = Field(
         default="video-crawler", validation_alias="CRAWLER_MINIO_PREFIX"
     )
+    topics_file: Path = Field(
+        default=ROOT_DIR / "video_crawler" / "topics.json",
+        validation_alias="CRAWLER_TOPICS_FILE",
+    )
     def session_file(self, platform: str) -> Path:
         return self.session_dir / f"{platform}.json"
 

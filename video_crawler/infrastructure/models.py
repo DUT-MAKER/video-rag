@@ -20,6 +20,7 @@ class CrawlJobModel(Base):
     __table_args__ = (
         Index("ix_crawler_jobs_status", "status"),
         Index("ix_crawler_jobs_lease", "lease_expires_at"),
+        UniqueConstraint("schedule_key", name="uq_crawler_schedule_key"),
         {"schema": SCHEMA},
     )
 
@@ -27,6 +28,9 @@ class CrawlJobModel(Base):
     request: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     status: Mapped[str] = mapped_column(String(24), nullable=False)
     owner: Mapped[str | None] = mapped_column(String(255))
+    schedule_key: Mapped[str | None] = mapped_column(String(80))
+    attempt_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     discovered_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     accepted_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

@@ -59,7 +59,8 @@ async def list_crawled_videos(
     admin: AdminUser,
     repository: FromDishka[CrawlerRepository],
     platform: Platform | None = None,
+    job_id: UUID | None = None,
     limit: int = Query(default=50, ge=1, le=200),
 ) -> list[dict[str, Any]]:
     del admin
-    return await repository.list_videos(platform=platform, limit=limit)
+    return await repository.list_videos(platform=platform, limit=limit, job_id=job_id)

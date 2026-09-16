@@ -1,0 +1,13 @@
+{
+  "timezone": "Asia/Ho_Chi_Minh",
+  "hours": [0, 2, 4, 22],
+  "keywords": [
+    "street food vietnam",
+    "travel vietnam",
+    "healthy recipes"
+  ],
+  "links_per_platform": 10,
+  "grace_minutes": 30,
+  "max_attempts": 3,
+  "retry_delay_seconds": 60
+}

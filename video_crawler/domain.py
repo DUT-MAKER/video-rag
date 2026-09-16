@@ -40,14 +40,35 @@ class CrawlJobRequest:
     creators: dict[Platform, str] = field(default_factory=dict)
     source_urls: dict[Platform, str] = field(default_factory=dict)
     max_items_per_platform: int = 20
+    max_new_links: int | None = None
+    min_views: int | None = None
+    min_likes: int | None = None
+    min_comments: int | None = None
+    min_shares: int | None = None
+    published_after: datetime | None = None
+    published_before: datetime | None = None
+    max_scrolls: int = 8
+    scroll_pause_seconds: float = 1.5
 
     def __post_init__(self) -> None:
         if not self.platforms:
             raise ValueError("At least one platform is required")
         if not 1 <= self.max_items_per_platform <= 100:
             raise ValueError("max_items_per_platform must be between 1 and 100")
+        if self.max_new_links is not None and not 1 <= self.max_new_links <= self.max_items_per_platform:
+            raise ValueError("max_new_links must be between 1 and max_items_per_platform")
         if len(set(self.platforms)) != len(self.platforms):
             raise ValueError("Duplicate platforms are not allowed")
+        for name in ("min_views", "min_likes", "min_comments", "min_shares"):
+            value = getattr(self, name)
+            if value is not None and value < 0:
+                raise ValueError(f"{name} must be non-negative")
+        if self.published_after and self.published_before and self.published_after > self.published_before:
+            raise ValueError("published_after must be before published_before")
+        if not 0 <= self.max_scrolls <= 100:
+            raise ValueError("max_scrolls must be between 0 and 100")
+        if not 0 <= self.scroll_pause_seconds <= 30:
+            raise ValueError("scroll_pause_seconds must be between 0 and 30")
         for platform in self.platforms:
             if self.discovery_method is DiscoveryMethod.SOURCE_URL:
                 if not self.source_urls.get(platform):
@@ -75,6 +96,15 @@ class CrawlJobRequest:
             "creators": {key.value: value for key, value in self.creators.items()},
             "source_urls": {key.value: value for key, value in self.source_urls.items()},
             "max_items_per_platform": self.max_items_per_platform,
+            "max_new_links": self.max_new_links,
+            "min_views": self.min_views,
+            "min_likes": self.min_likes,
+            "min_comments": self.min_comments,
+            "min_shares": self.min_shares,
+            "published_after": self.published_after.isoformat() if self.published_after else None,
+            "published_before": self.published_before.isoformat() if self.published_before else None,
+            "max_scrolls": self.max_scrolls,
+            "scroll_pause_seconds": self.scroll_pause_seconds,
         }
 
     @classmethod
@@ -87,6 +117,15 @@ class CrawlJobRequest:
             creators={Platform(k): str(v) for k, v in value.get("creators", {}).items()},
             source_urls={Platform(k): str(v) for k, v in value.get("source_urls", {}).items()},
             max_items_per_platform=int(value.get("max_items_per_platform", 20)),
+            max_new_links=_optional_int(value.get("max_new_links")),
+            min_views=_optional_int(value.get("min_views")),
+            min_likes=_optional_int(value.get("min_likes")),
+            min_comments=_optional_int(value.get("min_comments")),
+            min_shares=_optional_int(value.get("min_shares")),
+            published_after=_optional_datetime(value.get("published_after")),
+            published_before=_optional_datetime(value.get("published_before")),
+            max_scrolls=int(value.get("max_scrolls", 8)),
+            scroll_pause_seconds=float(value.get("scroll_pause_seconds", 1.5)),
         )
 
 
@@ -131,6 +170,8 @@ class CrawledVideo:
 class LeasedJob:
     id: UUID
     request: CrawlJobRequest
+    attempt_count: int = 1
+    accepted_count: int = 0
 
 
 def utc_now() -> datetime:
@@ -149,3 +190,14 @@ def _validate_source_url(platform: Platform, value: str) -> None:
         host == domain or host.endswith(f".{domain}") for domain in allowed
     ):
         raise ValueError(f"Invalid {platform.value} source URL")
+
+
+def _optional_int(value: Any) -> int | None:
+    return None if value in (None, "") else int(value)
+
+
+def _optional_datetime(value: Any) -> datetime | None:
+    if value in (None, ""):
+        return None
+    parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)

@@ -34,4 +34,5 @@ async def test_one_complete_video_per_platform() -> None:
     matching = [item for item in videos if str(item["job_id"]) == job_id]
     assert {item["platform"] for item in matching} == {"facebook", "tiktok", "youtube"}
     for item in matching:
-        assert all(item[field] for field in ("caption", "hashtag", "image_url", "video_url"))
+        assert item["canonical_url"].startswith("https://")
+        assert item["video_url"] == item["canonical_url"]

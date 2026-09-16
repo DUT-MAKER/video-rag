@@ -9,7 +9,6 @@ from video_crawler.domain import (
     DiscoveredVideo,
     DiscoveryMethod,
     LeasedJob,
-    MediaArtifact,
     Platform,
 )
 from video_crawler.service import CrawlService
@@ -26,25 +25,6 @@ class FakeCrawler:
             caption="Three ways to improve retention",
             hashtags=["retention"],
         )
-
-
-class FakeMedia:
-    async def resolve(self, video: DiscoveredVideo) -> MediaArtifact:
-        return MediaArtifact(
-            "video.mp4",
-            "thumb.jpg",
-            30.0,
-            "work",
-            metrics={"view_count": 1200, "like_count": 80},
-        )
-
-    async def cleanup(self, artifact: MediaArtifact) -> None:
-        return None
-
-
-class FakeStorage:
-    async def store(self, video: DiscoveredVideo, artifact: MediaArtifact) -> tuple[str, str]:
-        return "https://minio/video.mp4", "https://minio/thumb.jpg"
 
 
 class FakeRepository:
@@ -80,19 +60,17 @@ def service(repository: FakeRepository) -> CrawlService:
     return CrawlService(
         repository=repository,
         crawlers=[FakeCrawler()],
-        media=FakeMedia(),
-        storage=FakeStorage(),
     )
 
 
 @pytest.mark.asyncio
-async def test_complete_record_is_saved_after_minio_upload() -> None:
+async def test_complete_record_saves_source_url_without_download() -> None:
     repository = FakeRepository()
     request = CrawlJobRequest((Platform.YOUTUBE,), DiscoveryMethod.KEYWORD, query="retention")
     await service(repository).run_job(LeasedJob(uuid4(), request))
     assert repository.saved is not None
     saved = repository.saved[1]
-    assert saved.video_url == "https://minio/video.mp4"
-    assert saved.image_url == "https://minio/thumb.jpg"
-    assert saved.metrics == {"view_count": 1200, "like_count": 80}
+    assert saved.video_url == saved.canonical_url
+    assert saved.image_url == ""
+    assert saved.metrics == {}
     assert ("accepted", None) in repository.results
