@@ -1,8 +1,11 @@
-.PHONY: help dev-api dev-web docker-dev-web migrate create-migration test install-hooks lint run-ai
- 
+.PHONY: help setup-be setup-ai dev-api dev-web docker-dev-web migrate create-migration test install-hooks lint run-ai
+
 help:
 	@echo "Available commands:"
-	@echo "  make dev-api        - Start the local development server (uvicorn)"
+	@echo "  make setup-be       - Install & sync Backend dependencies (uv sync)"
+	@echo "  make setup-ai       - Install & sync AI microservice dependencies"
+	@echo "  make dev-api        - Start the local Backend API server (uvicorn)"
+	@echo "  make run-ai         - Start the local BentoML AI STT service"
 	@echo "  make dev-web        - Start the frontend development server (Next.js)"
 	@echo "  make docker-dev-web - Start the frontend development server with Docker Compose"
 	@echo "  make migrate        - Run all database migrations (locally using uv)"
@@ -10,6 +13,12 @@ help:
 	@echo "  make test           - Run backend test suite (locally)"
 	@echo "  make install-hooks  - Install git pre-commit hooks"
 	@echo "  make lint           - Run all formatting, linting, and tests (same as pre-commit)"
+
+setup-be:
+	uv sync
+
+setup-ai:
+	cd services/stt_service && uv sync
 
 dev-api:
 	uv run uvicorn backend.main:app --host 0.0.0.0 --port 8020 --reload
@@ -38,5 +47,6 @@ lint:
 	./.githooks/pre-commit
 
 run-ai:
-	uv run bentoml serve services.stt_service.service:WhisperXService --port 3001
+	cd services/stt_service && uv run bentoml serve service:WhisperXService --port 3001
+
 

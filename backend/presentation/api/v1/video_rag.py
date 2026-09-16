@@ -1,13 +1,13 @@
 """Video RAG endpoints: Ingestion, Similarity Search, and Script Generation."""
 
-from dishka.integrations.fastapi import FromDishka, inject
-from fastapi import APIRouter, File, Form, UploadFile, status
-
-from typing import Any
 import os
 import shutil
-import tempfile
 from pathlib import Path
+
+from dishka.integrations.fastapi import FromDishka, inject
+from fastapi import APIRouter, File, Form, UploadFile, status
+from loguru import logger
+
 from backend.presentation.schemas.response_dtos import (
     CallToActionResponseDTO,
     HookResponseDTO,
@@ -27,7 +27,6 @@ from backend.presentation.schemas.video_dtos import (
     SearchPatternsRequestDTO,
 )
 from module.video_rag.domain.entities.extraction_result import VideoExtractionResult
-from module.video_rag.domain.exceptions import DomainValidationError
 from module.video_rag.use_case.generate_viral_script import GenerateViralScriptUseCase
 from module.video_rag.use_case.get_video_detail import GetVideoDetailUseCase
 from module.video_rag.use_case.ingest_video_data import (
@@ -36,8 +35,6 @@ from module.video_rag.use_case.ingest_video_data import (
 )
 from module.video_rag.use_case.list_videos import ListVideosUseCase
 from module.video_rag.use_case.search_viral_patterns import SearchViralPatternsUseCase
-
-from loguru import logger
 
 router = APIRouter(tags=["Video RAG"])
 
@@ -60,7 +57,9 @@ async def ingest_video_from_file(
     Diarization, Vision, LLM) and index directly into Vector Store.
     """
     filename = file.filename or "video.mp4"
-    logger.info(f"🚀 [API] Nhận request ingest video: '{filename}', size: {file.size or 'unknown'} bytes, lang: '{language}'")
+    logger.info(
+        f"🚀 [API] Nhận request ingest video: '{filename}', size: {file.size or 'unknown'} bytes, lang: '{language}'"
+    )
 
     # Save uploaded file to temporary directory
     upload_dir = Path("data/uploads")
@@ -135,9 +134,6 @@ async def ingest_video_from_file(
     )
 
 
-
-
-
 @router.post(
     "/search",
     response_model=StandardResponse[list[SearchPatternItem]],
@@ -196,6 +192,15 @@ async def generate_viral_script(
     use_case: FromDishka[GenerateViralScriptUseCase],
 ) -> StandardResponse[ViralScriptResponseDTO]:
     """Execute end-to-end RAG script generation."""
+    logger.info(
+        f"🎬 [API Generate] Nhận yêu cầu tạo kịch bản video viral từ người dùng:\n"
+        f"  - Topic: {payload.topic}\n"
+        f"  - Target Audience: {payload.target_audience}\n"
+        f"  - Duration: {payload.duration_seconds}s\n"
+        f"  - Platform: {payload.platform.value}\n"
+        f"  - Hook Style: {payload.hook_style}\n"
+        f"  - Top K Patterns: {payload.top_k_patterns}"
+    )
     script = await use_case.execute(
         topic=payload.topic,
         target_audience=payload.target_audience,
@@ -309,6 +314,7 @@ async def get_video_detail(
     detail = await use_case.execute(video_id=video_id)
     if not detail:
         from fastapi import HTTPException
+
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Video not found with id '{video_id}'",

@@ -9,3 +9,7 @@ __pycache__/
 .agents/
 .agent/
 data/
+scratch/
+*.mp3
+*.mp4
+*.wav

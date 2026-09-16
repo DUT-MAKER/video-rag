@@ -1,6 +1,7 @@
 """Domain entities for video extraction pipeline."""
 
 from dataclasses import dataclass, field
+
 from module.video_rag.domain.entities.video_record import RawVideoRecord
 
 

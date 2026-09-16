@@ -1,9 +1,11 @@
 """Unit tests for Core Use Cases with Fake Ports."""
 
 from typing import Any
+from unittest.mock import AsyncMock
 
 import pytest
 
+from module.video_rag.domain.entities.extraction_result import VideoExtractionResult
 from module.video_rag.domain.entities.reference_pattern import SimilarVideoContext
 from module.video_rag.domain.entities.video_record import RawVideoRecord
 from module.video_rag.domain.entities.viral_script import CallToAction, Hook, Scene, ViralScript
@@ -15,8 +17,9 @@ from module.video_rag.port.embedding_port import IEmbeddingPort
 from module.video_rag.port.llm_port import ILLMPort
 from module.video_rag.port.rerank_port import IRerankPort, RerankedDocument
 from module.video_rag.port.vector_store_port import IVectorStorePort
+from module.video_rag.service.video_extraction_service import VideoExtractionPipelineService
 from module.video_rag.use_case.generate_viral_script import GenerateViralScriptUseCase
-from module.video_rag.use_case.ingest_video_data import IngestVideoDataUseCase
+from module.video_rag.use_case.ingest_video_data import IngestVideoDataUseCase, VideoItemInput
 from module.video_rag.use_case.search_viral_patterns import SearchViralPatternsUseCase
 
 
@@ -40,6 +43,12 @@ class FakeEmbeddingPort(IEmbeddingPort):
 
     async def embed_batch(self, texts: list[str]) -> list[list[float]]:
         return [[0.1, 0.2, 0.3] for _ in texts]
+
+    async def get_embedding(self, text: str) -> list[float]:
+        return await self.embed_text(text)
+
+    async def get_embeddings(self, texts: list[str]) -> list[list[float]]:
+        return await self.embed_batch(texts)
 
 
 class FakeVectorStorePort(IVectorStorePort):
@@ -134,29 +143,33 @@ class FakeRerankPort(IRerankPort):
 
 @pytest.mark.asyncio
 async def test_ingest_video_data_use_case() -> None:
-    sample_record = RawVideoRecord(
-        caption="2-Minute Rule",
-        hashtag="#viral",
-        transcript="Never give up on daily momentum.",
-        image_url="https://thumb.jpg",
-        summary="Summary",
-        video_url="https://video.mp4",
-    )
-    fake_reader = FakeDataReader([sample_record])
     fake_embed = FakeEmbeddingPort()
     fake_vector = FakeVectorStorePort()
-
-    use_case = IngestVideoDataUseCase(
-        data_reader=fake_reader,
-        embedding_port=fake_embed,
-        vector_store_port=fake_vector,
+    mock_extract = AsyncMock(spec=VideoExtractionPipelineService)
+    mock_extract.execute.return_value = VideoExtractionResult(
+        video_path="/tmp/video.mp4",
+        transcript="Never give up on daily momentum.",
+        transcript_with_speakers="SPEAKER_00 [0.0s -> 5.0s]: Never give up on daily momentum.",
+        speaker_count=1,
+        thumbnail_path="/tmp/thumb.jpg",
+        caption="2-Minute Rule",
+        summary="Summary",
+        hashtag="#viral",
     )
 
-    result = await use_case.execute("fake_path.json")
+    use_case = IngestVideoDataUseCase(
+        embedding_port=fake_embed,
+        vector_store_port=fake_vector,
+        extract_service=mock_extract,
+    )
+
+    result = await use_case.execute(
+        VideoItemInput(video_path="/tmp/video.mp4", caption="2-Minute Rule", hashtag="#viral")
+    )
     assert result.total_processed == 1
     assert result.total_indexed == 1
     assert len(fake_vector.storage) == 1
-    assert fake_vector.storage[0]["id"] == sample_record.id
+    assert fake_vector.storage[0]["metadata"]["caption"] == "2-Minute Rule"
 
 
 @pytest.mark.asyncio

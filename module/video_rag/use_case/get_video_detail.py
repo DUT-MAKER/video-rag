@@ -66,7 +66,8 @@ class GetVideoDetailUseCase:
         extra_meta = {
             k: v
             for k, v in meta.items()
-            if k not in {
+            if k
+            not in {
                 "id",
                 "vector",
                 "embedding",

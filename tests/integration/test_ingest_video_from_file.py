@@ -4,8 +4,10 @@ import asyncio
 import os
 import shutil
 import tempfile
+
 import pytest
 
+from module.video_rag.domain.entities.reference_pattern import SimilarVideoContext
 from module.video_rag.infra.data_readers.json_reader_adapter import (
     JsonDataReaderAdapter,
 )
@@ -22,9 +24,7 @@ from module.video_rag.infra.thumbnail_selector.vision_adapter import (
 from module.video_rag.infra.transcriber.bento_whisperx_adapter import (
     BentoWhisperXAdapter,
 )
-from module.video_rag.infra.vector_store.chroma_adapter import (
-    ChromaVectorStoreAdapter,
-)
+from module.video_rag.port.vector_store_port import IVectorStorePort
 from module.video_rag.service.video_extraction_service import (
     VideoExtractionPipelineService,
 )
@@ -32,6 +32,45 @@ from module.video_rag.use_case.ingest_video_data import IngestVideoDataUseCase
 from module.video_rag.use_case.search_viral_patterns import (
     SearchViralPatternsUseCase,
 )
+
+pytestmark = pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="ffmpeg is required for synthetic video test")
+
+
+class FakeVectorStorePort(IVectorStorePort):
+    def __init__(self) -> None:
+        self.storage: list[dict] = []
+
+    async def upsert(self, id: str, vector: list[float], metadata: dict, document: str) -> None:
+        self.storage.append({"id": id, "vector": vector, "metadata": metadata, "document": document})
+
+    async def upsert_batch(
+        self, ids: list[str], vectors: list[list[float]], metadatas: list[dict], documents: list[str]
+    ) -> None:
+        for i in range(len(ids)):
+            self.storage.append(
+                {
+                    "id": ids[i],
+                    "vector": vectors[i],
+                    "metadata": metadatas[i],
+                    "document": documents[i],
+                }
+            )
+
+    async def search(self, query_vector: list[float], top_k: int = 5) -> list[SimilarVideoContext]:
+        results = []
+        for item in self.storage[:top_k]:
+            results.append(
+                SimilarVideoContext(
+                    id=item["id"],
+                    document=item["document"],
+                    metadata=item["metadata"],
+                    score=0.95,
+                )
+            )
+        return results
+
+    async def count(self) -> int:
+        return len(self.storage)
 
 
 @pytest.fixture
@@ -48,11 +87,20 @@ async def synthetic_video(temp_workspace):
     cmd = [
         "ffmpeg",
         "-y",
-        "-f", "lavfi", "-i", "testsrc=duration=3:size=320x240:rate=25",
-        "-f", "lavfi", "-i", "sine=frequency=1000:duration=3",
-        "-c:v", "libx264",
-        "-pix_fmt", "yuv420p",
-        "-c:a", "aac",
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc=duration=3:size=320x240:rate=25",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=1000:duration=3",
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
         video_path,
     ]
     proc = await asyncio.create_subprocess_exec(
@@ -67,11 +115,7 @@ async def synthetic_video(temp_workspace):
 
 async def test_end_to_end_video_ingest_pipeline(temp_workspace, synthetic_video):
     # 1. Wire adapters with fallback mode for test environment
-    chroma_dir = os.path.join(temp_workspace, "chroma")
-    vector_store = ChromaVectorStoreAdapter(
-        persist_dir=chroma_dir,
-        collection_name="test_video_pipeline_coll",
-    )
+    vector_store = FakeVectorStorePort()
     embedding_port = SelfHostedEmbeddingAdapter(fallback_mode=True)
     llm_port = SelfHostedLLMAdapter(fallback_mode=True)
     media_extractor = FFmpegMediaExtractorAdapter()

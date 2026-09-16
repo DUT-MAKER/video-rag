@@ -37,6 +37,7 @@ class ILLMPort(Protocol):
     async def classify_intent(self, message: str) -> ChatIntent:
         """Classify user query intent into ChatIntent using LLM."""
         ...
+
     async def enrich_video_metadata(
         self,
         transcript: str,
@@ -51,4 +52,3 @@ class ILLMPort(Protocol):
             {"caption": "...", "summary": "...", "hashtag": "..."}
         """
         ...
-

@@ -1,5 +1,7 @@
 """GenerateViralScriptUseCase implementation."""
 
+from loguru import logger
+
 from module.video_rag.domain.entities.reference_pattern import (
     ReferencedPattern,
     SimilarVideoContext,
@@ -53,6 +55,11 @@ class GenerateViralScriptUseCase:
         if duration_seconds < 15 or duration_seconds > 180:
             raise DomainValidationError("Video duration must be between 15 and 180 seconds.")
 
+        logger.info(
+            f"🚀 [UseCase] Bắt đầu sinh kịch bản viral cho topic='{clean_topic}', "
+            f"platform={platform.value}, duration={duration_seconds}s, audience='{target_audience}'"
+        )
+
         # 1. Retrieve benchmark patterns from vector store (Stage 1: Vector Search)
         reference_contexts: list[SimilarVideoContext] = []
         try:
@@ -71,7 +78,7 @@ class GenerateViralScriptUseCase:
             # Stage 2: Cross-encoder Reranking
             if self._rerank and candidates:
                 candidate_docs = [
-                    f"Caption: {ctx.caption}\nHook: {ctx.hook_candidate}\nSummary: {ctx.summary}\n{ctx.document}"
+                    f"Caption: {ctx.caption}\nHook: {ctx.hook_candidate}\nSummary: {ctx.summary}\n{ctx.document[:500]}"
                     for ctx in candidates
                 ]
                 ranked_items = await self._rerank.rerank(
@@ -99,6 +106,7 @@ class GenerateViralScriptUseCase:
             reference_contexts = []
 
         # 3. Call LLM to generate viral script
+        logger.info(f"🧠 [UseCase] Gọi LLM tạo kịch bản với {len(reference_contexts)} benchmark patterns...")
         viral_script = await self._llm.generate_script(
             topic=clean_topic,
             target_audience=target_audience,
@@ -122,4 +130,8 @@ class GenerateViralScriptUseCase:
                 for ctx in reference_contexts
             ]
 
+        logger.info(
+            f"✨ [UseCase] Hoàn thành sinh kịch bản viral: '{viral_script.title}' "
+            f"({len(viral_script.scenes)} scenes, hook={viral_script.hook.hook_type.value})"
+        )
         return viral_script

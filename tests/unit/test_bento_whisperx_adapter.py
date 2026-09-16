@@ -2,8 +2,10 @@
 
 import os
 import tempfile
+
 import pytest
 
+from module.video_rag.domain.exceptions import TranscriptionError
 from module.video_rag.infra.transcriber.bento_whisperx_adapter import (
     BentoWhisperXAdapter,
 )
@@ -38,5 +40,5 @@ async def test_bento_whisperx_fallback_mode(dummy_audio_file):
 
 async def test_bento_whisperx_file_not_found():
     adapter = BentoWhisperXAdapter(fallback_mode=False)
-    with pytest.raises(Exception):
+    with pytest.raises(TranscriptionError):
         await adapter.transcribe("/non/existent/path.wav")

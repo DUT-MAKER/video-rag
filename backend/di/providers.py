@@ -20,12 +20,6 @@ from module.upload.infra.clients.s3_client import S3Client
 from module.upload.port.s3_client import IS3Client
 from module.upload.use_case.presign_upload import PresignUploadUseCase
 from module.upload.use_case.upload_file import UploadFileUseCase
-from module.video_rag.infra.media_extractor.ffmpeg_adapter import (
-    FFmpegMediaExtractorAdapter,
-)
-from module.video_rag.infra.session_store.in_memory_session_store import (
-    InMemoryChatSessionAdapter,
-)
 from module.video_rag.infra.data_readers.json_reader_adapter import (
     JsonDataReaderAdapter,
 )
@@ -33,6 +27,9 @@ from module.video_rag.infra.embeddings.self_hosted_embed import (
     SelfHostedEmbeddingAdapter,
 )
 from module.video_rag.infra.llm.self_hosted_llm import SelfHostedLLMAdapter
+from module.video_rag.infra.media_extractor.ffmpeg_adapter import (
+    FFmpegMediaExtractorAdapter,
+)
 from module.video_rag.infra.rerank.dut_ai_rerank_adapter import DutAiRerankAdapter
 from module.video_rag.infra.session_store.in_memory_session_store import (
     InMemoryChatSessionAdapter,
@@ -43,14 +40,13 @@ from module.video_rag.infra.thumbnail_selector.vision_adapter import (
 from module.video_rag.infra.transcriber.bento_whisperx_adapter import (
     BentoWhisperXAdapter,
 )
-
 from module.video_rag.infra.vector_store.pgvector_adapter import PgVectorAdapter
 from module.video_rag.port.chat_session_store_port import IChatSessionStorePort
 from module.video_rag.port.data_reader_port import IDataReaderPort
 from module.video_rag.port.embedding_port import IEmbeddingPort
 from module.video_rag.port.llm_port import ILLMPort
-from module.video_rag.port.rerank_port import IRerankPort
 from module.video_rag.port.media_extractor_port import IMediaExtractorPort
+from module.video_rag.port.rerank_port import IRerankPort
 from module.video_rag.port.thumbnail_selector_port import IThumbnailSelectorPort
 from module.video_rag.port.transcriber_port import ITranscriberPort
 from module.video_rag.port.vector_store_port import IVectorStorePort
