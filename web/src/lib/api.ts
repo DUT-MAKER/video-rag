@@ -3,11 +3,15 @@ import { getAuthToken } from "./auth-token";
 import type {
   ChatResponse,
   GenerateScriptPayload,
-  IngestionResponseData,
+  IngestVideoFilePayload,
   ReferencedPattern,
   SearchPatternItem,
   SessionDetail,
   SessionListResponse,
+  VideoDetail,
+  VideoFileIngestionResponseData,
+  VideoListItem,
+  VideoListResponse,
   ViralScript,
 } from "./types";
 
@@ -18,7 +22,7 @@ export interface StandardApiResponse<T> {
 }
 
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8020/api/v1";
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -265,15 +269,60 @@ export async function searchBenchmarkPatterns(
   }
 }
 
-// Knowledge Store Ingestion
-export async function ingestKnowledge(
-  filePath: string = "data/samples/sample_viral_videos.json"
-): Promise<IngestionResponseData> {
-  const res = await api.post<StandardApiResponse<IngestionResponseData>>(
-    "/ingest",
+
+
+// Single Video Ingestion (Extract FFmpeg + BentoML WhisperX STT + Vision + Vector Store)
+export async function ingestVideoFile(
+  payload: IngestVideoFilePayload
+): Promise<VideoFileIngestionResponseData> {
+  const formData = new FormData();
+  formData.append("file", payload.file);
+  if (payload.caption) formData.append("caption", payload.caption);
+  if (payload.hashtag) formData.append("hashtag", payload.hashtag);
+  if (payload.language) formData.append("language", payload.language);
+
+  const res = await api.post<StandardApiResponse<VideoFileIngestionResponseData>>(
+    "/ingest-video",
+    formData,
     {
-      file_path: filePath,
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
     }
   );
+  return res.data.data;
+}
+
+// Format local media URL (e.g. data/storage/thumbnails/... -> http://localhost:8020/data/storage/thumbnails/...)
+export function formatMediaUrl(url: string): string {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return url;
+  }
+  // Remove leading slashes if needed
+  const cleanPath = url.startsWith("/") ? url.slice(1) : url;
+  // If path starts with data/, prefix with backend origin
+  const backendOrigin = API_BASE_URL.replace(/\/api\/v1\/?$/, "");
+  return `${backendOrigin}/${cleanPath}`;
+}
+
+// Video Management: List all indexed videos
+export async function getVideoList(
+  limit: number = 50,
+  offset: number = 0,
+  search: string = ""
+): Promise<VideoListResponse> {
+  const params: Record<string, string | number> = { limit, offset };
+  if (search) params.search = search;
+
+  const res = await api.get<StandardApiResponse<VideoListResponse>>("/videos", {
+    params,
+  });
+  return res.data.data;
+}
+
+// Video Management: Get single video detail
+export async function getVideoDetail(videoId: string): Promise<VideoDetail> {
+  const res = await api.get<StandardApiResponse<VideoDetail>>(`/videos/${videoId}`);
   return res.data.data;
 }

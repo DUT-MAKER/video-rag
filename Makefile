@@ -12,7 +12,7 @@ help:
 	@echo "  make lint           - Run all formatting, linting, and tests (same as pre-commit)"
 
 dev-api:
-	uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+	uv run uvicorn backend.main:app --host 0.0.0.0 --port 8020 --reload
 
 dev-web:
 	cd ./web && pnpm dev

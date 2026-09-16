@@ -1,79 +1,145 @@
-"""IngestVideoDataUseCase implementation."""
+"""Unified IngestVideoDataUseCase implementation."""
 
-from dataclasses import dataclass
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+import os
 from typing import Any
 
+from loguru import logger
+
+from module.video_rag.domain.entities.extraction_result import VideoExtractionResult
+from module.video_rag.domain.entities.video_record import RawVideoRecord
 from module.video_rag.domain.exceptions import VideoRecordParsingError
-from module.video_rag.port.data_reader_port import IDataReaderPort
 from module.video_rag.port.embedding_port import IEmbeddingPort
 from module.video_rag.port.vector_store_port import IVectorStorePort
+from module.video_rag.service.video_extraction_service import (
+    VideoExtractionPipelineService,
+)
+
+
+@dataclass
+class VideoItemInput:
+    """Input specification for a single video item."""
+
+    video_path: str
+    caption: str = ""
+    hashtag: str = ""
+    language: str = "vi"
 
 
 @dataclass
 class IngestionResult:
-    """Summary of data ingestion operation."""
+    """Comprehensive summary of data ingestion operation."""
 
     total_processed: int
     total_indexed: int
-    extracted_hooks: list[str]
-    indexed_ids: list[str]
+    extracted_hooks: list[str] = field(default_factory=list)
+    indexed_ids: list[str] = field(default_factory=list)
+    records: list[RawVideoRecord] = field(default_factory=list)
+    extractions: list[VideoExtractionResult] = field(default_factory=list)
+
+    @property
+    def latest_extraction(self) -> VideoExtractionResult | None:
+        return self.extractions[0] if self.extractions else None
+
+    @property
+    def latest_record(self) -> RawVideoRecord | None:
+        return self.records[0] if self.records else None
 
 
 class IngestVideoDataUseCase:
-    """Coordinates reading, processing, embedding, and indexing of viral video records."""
+    """Single unified use case to extract video metadata, merge input metadata, and ingest into Vector Store."""
 
     def __init__(
         self,
-        data_reader: IDataReaderPort,
         embedding_port: IEmbeddingPort,
         vector_store_port: IVectorStorePort,
+        extract_service: VideoExtractionPipelineService,
     ) -> None:
-        self._reader = data_reader
         self._embed = embedding_port
         self._vector_store = vector_store_port
+        self._extract = extract_service
 
-    async def execute(self, source: str | list[dict[str, Any]]) -> IngestionResult:
-        """Execute ingestion from a file path or raw dictionary list."""
-        if hasattr(self._reader, "read_from_file") and isinstance(source, str):
-            records = self._reader.read_from_file(source)
-        elif hasattr(self._reader, "read_from_records") and isinstance(source, list):
-            records = self._reader.read_from_records(source)
-        elif hasattr(self._reader, "read_records") and isinstance(source, str):
-            records = await self._reader.read_records(source)
-        else:
-            raise VideoRecordParsingError(f"Invalid data source type: {type(source)}")
+    async def execute(
+        self,
+        input_data: VideoItemInput,
+    ) -> IngestionResult:
+        """Execute extraction and ingestion for a single video item.
 
-        if not records:
-            return IngestionResult(
-                total_processed=0,
-                total_indexed=0,
-                extracted_hooks=[],
-                indexed_ids=[],
-            )
+        Args:
+            input_data: VideoItemInput instance or raw dictionary.
 
-        # 1. Extract searchable text representations, IDs, and metadata
-        texts_to_embed = [record.to_searchable_text() for record in records]
-        ids = [record.id for record in records]
-        metadatas = [record.to_metadata() for record in records]
-        extracted_hooks = [record.extract_hook() for record in records]
+        Returns:
+            IngestionResult containing indexed IDs, extracted hooks, records, and extractions.
+        """
+        video_path = input_data.video_path
+        extractions: list[VideoExtractionResult] = []
 
-        # 2. Batch vector embedding
-        if hasattr(self._embed, "embed_batch"):
-            vectors = await self._embed.embed_batch(texts_to_embed)
-        else:
-            vectors = await self._embed.get_embeddings(texts_to_embed)
+        logger.info(f"▶️ [IngestVideoDataUseCase] Bắt đầu xử lý video item: '{video_path}'")
 
-        # 3. Upsert into Vector Store
+        # 1. Run extraction for raw video file
+        logger.info("⚙️ [IngestVideoDataUseCase] Giai đoạn 1: Gọi VideoExtractionPipelineService...")
+        extraction = await self._extract.execute(
+            video_path=str(video_path),
+            language=input_data.language,
+        )
+        extractions.append(extraction)
+        logger.info(f"✅ [IngestVideoDataUseCase] Giai đoạn 1 hoàn tất (Trích xuất được {extraction.speaker_count} speaker, duration: {extraction.duration_seconds:.1f}s)")
+
+        # Merge extracted information with user-provided metadata
+        final_caption = input_data.caption or extraction.caption
+        final_hashtag = input_data.hashtag or extraction.hashtag
+        final_summary = extraction.summary
+        final_video_url = str(video_path)
+        final_image_url = extraction.thumbnail_path
+        segments_dict = [
+            {
+                "start": seg.start,
+                "end": seg.end,
+                "text": seg.text,
+                "speaker": seg.speaker,
+            }
+            for seg in extraction.transcript_segments
+        ]
+
+        record = RawVideoRecord(
+            caption=final_caption,
+            hashtag=final_hashtag,
+            transcript=extraction.transcript,
+            image_url=final_image_url,
+            summary=final_summary,
+            video_url=final_video_url,
+            speaker_count=extraction.speaker_count,
+            duration_seconds=extraction.duration_seconds,
+            transcript_with_speakers=extraction.transcript_with_speakers,
+            segments=segments_dict,
+        )
+
+        # 2. Embed and upsert into Vector Store
+        texts_to_embed = [record.to_searchable_text()]
+        ids: list[str] = [record.id]
+        metadatas = [record.to_metadata()]
+        extracted_hooks = [record.extract_hook()]
+
+        logger.info(f"🔢 [IngestVideoDataUseCase] Giai đoạn 2: Tạo vector embedding cho record '{record.id}'...")
+        vectors = await self._embed.get_embeddings(texts_to_embed)
+        logger.info(f"✅ [IngestVideoDataUseCase] Đã tạo embedding (dim: {len(vectors[0]) if vectors else 0})")
+
+        logger.info("💾 [IngestVideoDataUseCase] Giai đoạn 3: Lưu vào Vector Store (PostgreSQL pgvector)...")
         await self._vector_store.upsert_batch(
             ids=ids,
             vectors=vectors,
             metadatas=metadatas,
             documents=texts_to_embed,
         )
+        logger.info(f"✅ [IngestVideoDataUseCase] Upsert thành công record id: {ids}")
 
         return IngestionResult(
-            total_processed=len(records),
-            total_indexed=len(ids),
+            total_processed=1,
+            total_indexed=1,
             extracted_hooks=extracted_hooks,
             indexed_ids=ids,
+            records=[record],
+            extractions=extractions,
         )

@@ -4,7 +4,8 @@ import json
 import re
 from collections.abc import AsyncIterator
 
-import httpx
+from loguru import logger
+from openai import AsyncOpenAI
 
 from module.video_rag.domain.entities.chat_message import ChatMessage
 from module.video_rag.domain.entities.reference_pattern import (
@@ -36,11 +37,18 @@ class SelfHostedLLMAdapter(ILLMPort):
         timeout: float = 60.0,
     ) -> None:
         self._api_base_url = api_base_url.rstrip("/")
-        self._api_key = api_key
+        self._api_key = api_key or "EMPTY"
         self._model_name = model_name
         self._temperature = temperature
         self._max_tokens = max_tokens
         self._timeout = timeout
+
+        # Initialize AsyncOpenAI client
+        self._client = AsyncOpenAI(
+            base_url=self._api_base_url,
+            api_key=self._api_key,
+            timeout=self._timeout,
+        )
 
     def _build_system_prompt(self) -> str:
         return """You are a World-Class Director and Viral Short-Form Video Scriptwriter (TikTok, Reels, Shorts).
@@ -188,34 +196,24 @@ Quality Guidelines:
         )
 
         try:
-            headers = {"Content-Type": "application/json"}
-            if self._api_key:
-                headers["Authorization"] = f"Bearer {self._api_key}"
-
-            url = f"{self._api_base_url}/chat/completions"
-            payload = {
-                "model": self._model_name,
-                "messages": [
+            logger.info(f"🤖 [LLM] Đang gọi generate_script qua AsyncOpenAI (model='{self._model_name}')...")
+            response = await self._client.chat.completions.create(
+                model=self._model_name,
+                messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
-                "temperature": self._temperature,
-                "max_tokens": self._max_tokens,
-                "response_format": {"type": "json_object"},
-            }
-
-            async with httpx.AsyncClient(timeout=self._timeout) as client:
-                response = await client.post(url, json=payload, headers=headers)
-                if response.status_code == 200:
-                    res_data = response.json()
-                    raw_content = res_data["choices"][0]["message"]["content"]
-                    return self._parse_llm_json(raw_content, platform, duration_seconds)
-
-                raise ScriptGenerationError(f"LLM API returned HTTP {response.status_code}: {response.text}")
+                temperature=self._temperature,
+                max_tokens=self._max_tokens,
+                response_format={"type": "json_object"},
+            )
+            raw_content = response.choices[0].message.content or ""
+            return self._parse_llm_json(raw_content, platform, duration_seconds)
         except Exception as err:
-            if isinstance(err, ScriptGenerationError):
-                raise
-            raise ScriptGenerationError(f"Unable to connect to Self-hosted LLM API: {err}") from err
+            logger.warning(f"⚠️ [LLM] Lỗi generate_script ({type(err).__name__}: {err}).")
+            raise ScriptGenerationError(
+                f"Unable to connect to Self-hosted LLM API: {err}"
+            ) from err
 
     def _build_chat_system_prompt(
         self,
@@ -258,46 +256,25 @@ Quality Guidelines:
         for msg in messages:
             formatted_messages.append({"role": msg.role.value, "content": msg.content})
 
-        url = f"{self._api_base_url}/chat/completions"
-        headers = {"Content-Type": "application/json"}
-        if self._api_key:
-            headers["Authorization"] = f"Bearer {self._api_key}"
-
-        payload = {
-            "model": self._model_name,
-            "messages": formatted_messages,
-            "temperature": self._temperature,
-            "max_tokens": self._max_tokens,
-            "stream": True,
-        }
-
         try:
-            async with httpx.AsyncClient(timeout=self._timeout) as client:
-                async with client.stream("POST", url, json=payload, headers=headers) as response:
-                    if response.status_code == 200:
-                        async for line in response.aiter_lines():
-                            line = line.strip()
-                            if not line or not line.startswith("data:"):
-                                continue
-                            data_str = line[5:].strip()
-                            if data_str == "[DONE]":
-                                break
-                            try:
-                                data = json.loads(data_str)
-                                delta = data["choices"][0].get("delta", {})
-                                content = delta.get("content")
-                                if content:
-                                    yield content
-                            except Exception:
-                                continue
-                        return
-
-                    if response.status_code != 200:
-                        raise ScriptGenerationError(f"LLM streaming service returned HTTP {response.status_code}")
+            stream = await self._client.chat.completions.create(
+                model=self._model_name,
+                messages=formatted_messages,  # type: ignore[arg-type]
+                temperature=self._temperature,
+                max_tokens=self._max_tokens,
+                stream=True,
+            )
+            async for chunk in stream:
+                delta = chunk.choices[0].delta if chunk.choices else None
+                content = delta.content if delta else None
+                if content:
+                    yield content
+            return
         except Exception as err:
-            if isinstance(err, ScriptGenerationError):
-                raise
-            raise ScriptGenerationError(f"Unable to stream from Self-hosted LLM API: {err}") from err
+            logger.warning(f"⚠️ [LLM] Lỗi stream_chat ({type(err).__name__}: {err}).")
+            raise ScriptGenerationError(
+                f"Unable to stream from Self-hosted LLM API: {err}"
+            ) from err
 
     async def classify_intent(self, message: str) -> ChatIntent:
         """Classify user query intent into ChatIntent using LLM with structured format."""
@@ -312,40 +289,26 @@ Quality Guidelines:
             '{"intent": "generate_script"} or {"intent": "general_chat"}'
         )
 
-        url = f"{self._api_base_url}/chat/completions"
-        headers = {"Content-Type": "application/json"}
-        if self._api_key:
-            headers["Authorization"] = f"Bearer {self._api_key}"
-
-        payload = {
-            "model": self._model_name,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": message},
-            ],
-            "temperature": 0.0,
-            "max_tokens": 2048,
-            "response_format": {"type": "json_object"},
-        }
-
         try:
-            async with httpx.AsyncClient(timeout=min(self._timeout, 10.0)) as client:
-                response = await client.post(url, json=payload, headers=headers)
-                if response.status_code == 200:
-                    res_data = response.json()
-                    content = res_data["choices"][0]["message"]["content"]
-                    parsed = json.loads(content)
-                    raw_intent = str(parsed.get("intent", "")).strip().lower()
-                    if raw_intent == "generate_script":
-                        return ChatIntent.GENERATE_SCRIPT
-                    return ChatIntent.GENERAL_CHAT
-                raise ScriptGenerationError(
-                    f"LLM classify_intent returned HTTP {response.status_code}: {response.text}"
-                )
+            response = await self._client.chat.completions.create(
+                model=self._model_name,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": message},
+                ],
+                temperature=0.0,
+                max_tokens=2048,
+                response_format={"type": "json_object"},
+            )
+            content = response.choices[0].message.content or ""
+            parsed = json.loads(content)
+            raw_intent = str(parsed.get("intent", "")).strip().lower()
+            if raw_intent == "generate_script":
+                return ChatIntent.GENERATE_SCRIPT
+            return ChatIntent.GENERAL_CHAT
         except Exception as err:
-            if isinstance(err, ScriptGenerationError):
-                raise
-            raise ScriptGenerationError(f"Unable to classify intent via LLM: {err}") from err
+            logger.warning(f"⚠️ [LLM] classify_intent failed ({err}). Defaulting to GENERAL_CHAT.")
+            return ChatIntent.GENERAL_CHAT
 
     async def enrich_video_metadata(
         self,
@@ -366,50 +329,49 @@ Quality Guidelines:
         )
 
         user_prompt = f"Transcript:\n{transcript}\n\nLanguage: {language}"
-
-        url = f"{self._api_base_url}/chat/completions"
-        headers = {"Content-Type": "application/json"}
-        if self._api_key:
-            headers["Authorization"] = f"Bearer {self._api_key}"
-
-        payload = {
-            "model": self._model_name,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            "temperature": 0.3,
-            "max_tokens": 2048,
-        }
+        logger.info(f"📄 [LLM] Độ dài transcript gửi lên: {len(transcript)} ký tự. Preview: '{transcript[:150]}'")
 
         try:
-            async with httpx.AsyncClient(timeout=self._timeout) as client:
-                response = await client.post(url, json=payload, headers=headers)
-                if response.status_code == 200:
-                    data = response.json()
-                    choices = data.get("choices", [])
-                    content = ""
-                    if choices:
-                        first_choice = choices[0]
-                        content = (first_choice.get("message", {}).get("content") or "").strip()
-                        if not content:
-                            reasoning = first_choice.get("message", {}).get("reasoning_content") or ""
-                            if reasoning:
-                                json_in_reasoning = re.search(r"\{[\s\S]*\}", reasoning)
-                                if json_in_reasoning:
-                                    content = json_in_reasoning.group(0)
+            logger.info(f"🤖 [LLM] Đang gọi AsyncOpenAI enrich_video_metadata (base_url='{self._api_base_url}', model='{self._model_name}')...")
+            response = await self._client.chat.completions.create(
+                model=self._model_name,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.3,
+                max_tokens=2048,
+            )
+            content = ""
+            if response.choices:
+                first_choice = response.choices[0]
+                logger.info(f"📦 [LLM] Choice finish_reason='{first_choice.finish_reason}'")
+                content = (first_choice.message.content or "").strip()
+                # Nếu model là reasoning model (thinking model) và để output ở reasoning_content
+                if not content:
+                    reasoning = getattr(first_choice.message, "reasoning_content", None) or ""
+                    if reasoning:
+                        logger.info("ℹ️ [LLM] Tìm thấy reasoning_content trong message, đang thử parse...")
+                        json_in_reasoning = re.search(r"\{[\s\S]*\}", reasoning)
+                        if json_in_reasoning:
+                            content = json_in_reasoning.group(0)
+            
+            logger.info(f"📝 [LLM] Raw output từ AsyncOpenAI: '{content[:300]}'")
+            json_match = re.search(r"\{.*\}", content, re.DOTALL)
+            if json_match:
+                parsed = json.loads(json_match.group(0))
+                logger.info(f"✨ [LLM] Parse JSON thành công! Caption: '{parsed.get('caption', '')[:50]}...'")
+                return {
+                    "caption": str(parsed.get("caption", "")).strip(),
+                    "summary": str(parsed.get("summary", "")).strip(),
+                    "hashtag": str(parsed.get("hashtag", "")).strip(),
+                }
+            else:
+                logger.warning(f"⚠️ [LLM] AsyncOpenAI trả về thành công nhưng content trống hoặc không có JSON: '{content}'")
+        except Exception as err:
+            logger.warning(f"⚠️ [LLM] Lỗi exception khi gọi AsyncOpenAI ({type(err).__name__}: {err}). Sẽ dùng chế độ Fallback.")
 
-                    json_match = re.search(r"\{.*\}", content, re.DOTALL)
-                    if json_match:
-                        parsed = json.loads(json_match.group(0))
-                        return {
-                            "caption": str(parsed.get("caption", "")).strip(),
-                            "summary": str(parsed.get("summary", "")).strip(),
-                            "hashtag": str(parsed.get("hashtag", "")).strip(),
-                        }
-        except Exception:
-            pass
-
+        logger.info("ℹ️ [LLM] Đang chạy Offline Fallback để trích xuất caption & summary từ transcript...")
         return self._fallback_enrich_video_metadata(transcript)
 
     def _fallback_enrich_video_metadata(self, transcript: str) -> dict[str, str]:

@@ -57,6 +57,11 @@ def create_app() -> FastAPI:
     # Mount API v1 Routes
     app.include_router(api_v1_router, prefix="/api/v1")
 
+    # Mount data storage & uploads for serving thumbnails and videos
+    data_path = Path(__file__).resolve().parent.parent / "data"
+    if data_path.exists():
+        app.mount("/data", StaticFiles(directory=str(data_path)), name="data_files")
+
     # Mount Frontend Static UI & Chat Webpage
     static_path = Path(__file__).resolve().parent / "static"
     if static_path.exists():

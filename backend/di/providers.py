@@ -54,17 +54,16 @@ from module.video_rag.port.media_extractor_port import IMediaExtractorPort
 from module.video_rag.port.thumbnail_selector_port import IThumbnailSelectorPort
 from module.video_rag.port.transcriber_port import ITranscriberPort
 from module.video_rag.port.vector_store_port import IVectorStorePort
+from module.video_rag.service.video_extraction_service import (
+    VideoExtractionPipelineService,
+)
 from module.video_rag.use_case.chat_with_viral_assistant import (
     ChatWithViralAssistantUseCase,
 )
-from module.video_rag.use_case.extract_video_metadata import (
-    ExtractVideoMetadataUseCase,
-)
 from module.video_rag.use_case.generate_viral_script import GenerateViralScriptUseCase
+from module.video_rag.use_case.get_video_detail import GetVideoDetailUseCase
 from module.video_rag.use_case.ingest_video_data import IngestVideoDataUseCase
-from module.video_rag.use_case.ingest_video_from_file import (
-    IngestVideoFromFileUseCase,
-)
+from module.video_rag.use_case.list_videos import ListVideosUseCase
 from module.video_rag.use_case.search_viral_patterns import SearchViralPatternsUseCase
 
 
@@ -182,14 +181,14 @@ class VideoRagModuleProvider(Provider):
     @provide(scope=Scope.REQUEST)
     def ingest_use_case(
         self,
-        data_reader: IDataReaderPort,
         embedding_port: IEmbeddingPort,
         vector_store_port: IVectorStorePort,
+        extract_service: VideoExtractionPipelineService,
     ) -> IngestVideoDataUseCase:
         return IngestVideoDataUseCase(
-            data_reader=data_reader,
             embedding_port=embedding_port,
             vector_store_port=vector_store_port,
+            extract_service=extract_service,
         )
 
     @provide(scope=Scope.REQUEST)
@@ -236,7 +235,23 @@ class VideoRagModuleProvider(Provider):
             embedding_port=embedding_port,
             vector_store_port=vector_store_port,
             session_store_port=chat_store,
+            rerank_port=rerank_port if rerank_settings.enabled else None,
+            candidate_k=rerank_settings.candidate_k,
         )
+
+    @provide(scope=Scope.REQUEST)
+    def list_videos_use_case(
+        self,
+        vector_store_port: IVectorStorePort,
+    ) -> ListVideosUseCase:
+        return ListVideosUseCase(vector_store=vector_store_port)
+
+    @provide(scope=Scope.REQUEST)
+    def get_video_detail_use_case(
+        self,
+        vector_store_port: IVectorStorePort,
+    ) -> GetVideoDetailUseCase:
+        return GetVideoDetailUseCase(vector_store=vector_store_port)
 
     @provide
     def media_extractor_port(self) -> IMediaExtractorPort:
@@ -258,33 +273,17 @@ class VideoRagModuleProvider(Provider):
             fallback_mode=llm_settings.use_local_fallback,
         )
 
-
     @provide(scope=Scope.REQUEST)
-    def extract_video_metadata_use_case(
+    def video_extraction_service(
         self,
         media_extractor_port: IMediaExtractorPort,
         transcriber_port: ITranscriberPort,
         thumbnail_selector_port: IThumbnailSelectorPort,
         llm_port: ILLMPort,
-        rerank_port: IRerankPort
-    ) -> ExtractVideoMetadataUseCase:
-        return ExtractVideoMetadataUseCase(
+    ) -> VideoExtractionPipelineService:
+        return VideoExtractionPipelineService(
             media_extractor_port=media_extractor_port,
             transcriber_port=transcriber_port,
             thumbnail_selector_port=thumbnail_selector_port,
             llm_port=llm_port,
-            rerank_port=rerank_port,
-            candidate_k=rerank_settings.candidate_k,
         )
-
-    @provide(scope=Scope.REQUEST)
-    def ingest_video_from_file_use_case(
-        self,
-        extract_use_case: ExtractVideoMetadataUseCase,
-        ingest_use_case: IngestVideoDataUseCase,
-    ) -> IngestVideoFromFileUseCase:
-        return IngestVideoFromFileUseCase(
-            extract_use_case=extract_use_case,
-            ingest_use_case=ingest_use_case,
-        )
-

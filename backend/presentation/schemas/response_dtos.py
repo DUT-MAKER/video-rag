@@ -54,6 +54,46 @@ class VideoFileIngestionResponseData(BaseModel):
 
 
 
+class VideoListItemDTO(BaseModel):
+    """Summary representation of a video in list view."""
+
+    id: str
+    caption: str
+    hashtag: str
+    image_url: str
+    video_url: str
+    summary: str
+    hook_candidate: str
+    speaker_count: int = 1
+    duration_seconds: float = 0.0
+
+
+class VideoListResponseDTO(BaseModel):
+    """Paginated list of videos."""
+
+    items: list[VideoListItemDTO]
+    total: int
+    limit: int
+    offset: int
+
+
+class VideoDetailResponseDTO(BaseModel):
+    """Comprehensive video detail view without internal ID or vector embedding."""
+
+    caption: str
+    hashtag: str
+    image_url: str
+    video_url: str
+    summary: str
+    hook_candidate: str
+    transcript: str
+    transcript_with_speakers: str
+    speaker_count: int = 1
+    duration_seconds: float = 0.0
+    document: str = ""
+    extra_metadata: dict = {}
+
+
 class SearchPatternItem(BaseModel):
     """Matched benchmark pattern item from vector search."""
 

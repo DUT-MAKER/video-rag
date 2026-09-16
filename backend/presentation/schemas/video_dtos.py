@@ -29,21 +29,17 @@ class IngestVideoFileRequestDTO(BaseModel):
         description="Path to video file on server disk (e.g. data/samples/sample_video.mp4)",
         examples=["data/samples/sample_video.mp4"],
     )
-    video_url: str | None = Field(
-        default=None,
-        description="Public/S3 URL for video playback (defaults to video_path)",
+    caption: str = Field(
+        default="",
+        description="Pre-defined or initial caption for the video",
     )
-    image_url: str | None = Field(
-        default=None,
-        description="Public/S3 URL for thumbnail image (defaults to extracted thumbnail path)",
+    hashtag: str = Field(
+        default="",
+        description="Pre-defined hashtags (comma or space separated)",
     )
     language: str = Field(
         default="vi",
         description="Spoken language code for STT transcription (vi, en, etc.)",
-    )
-    enable_diarization: bool = Field(
-        default=True,
-        description="Whether to perform speaker diarization (phân loại câu này ai nói)",
     )
 
 

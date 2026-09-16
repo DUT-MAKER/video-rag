@@ -27,7 +27,7 @@ class AppSettings(BaseSettings):
     host: str = Field(default="0.0.0.0", validation_alias="API_HOST")
     port: int = Field(default=8000, validation_alias="API_PORT")
     cors_origins: str = Field(
-        default="http://localhost:3000,http://127.0.0.1:3000",
+        default="http://localhost:3000,http://127.0.0.1:3000,http://localhost:3002,http://127.0.0.1:3002",
         validation_alias="CORS_ORIGINS",
     )
 

@@ -32,6 +32,51 @@ class FFmpegMediaExtractorAdapter(IMediaExtractorPort):
         if output_dir:
             os.makedirs(output_dir, exist_ok=True)
 
+        # Check if file has an audio stream
+        probe_cmd = [
+            self._ffprobe,
+            "-v",
+            "error",
+            "-select_streams",
+            "a:0",
+            "-show_entries",
+            "stream=codec_type",
+            "-of",
+            "default=noprint_wrappers=1:nokey=1",
+            video_path,
+        ]
+        probe_proc = await asyncio.create_subprocess_exec(
+            *probe_cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        probe_out, _ = await probe_proc.communicate()
+        has_audio_stream = "audio" in probe_out.decode("utf-8", errors="ignore").lower()
+
+        if not has_audio_stream:
+            # File has no audio track (e.g., silent video or video-only mp4).
+            # Generate a short 1s silent 16kHz mono WAV file so STT won't crash.
+            gen_silent_cmd = [
+                self._ffmpeg,
+                "-y",
+                "-f",
+                "lavfi",
+                "-i",
+                "anullsrc=r=16000:cl=mono",
+                "-t",
+                "1",
+                "-acodec",
+                "pcm_s16le",
+                output_path,
+            ]
+            proc_silent = await asyncio.create_subprocess_exec(
+                *gen_silent_cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            await proc_silent.communicate()
+            return output_path
+
         cmd = [
             self._ffmpeg,
             "-y",
@@ -73,6 +118,31 @@ class FFmpegMediaExtractorAdapter(IMediaExtractorPort):
             raise MediaExtractionError(f"Video file not found: {video_path}")
 
         os.makedirs(output_dir, exist_ok=True)
+
+        # First probe if the media file actually has a video stream (e.g. mp4, mkv) vs audio-only (e.g. mp3, wav)
+        probe_cmd = [
+            self._ffprobe,
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=codec_type",
+            "-of",
+            "default=noprint_wrappers=1:nokey=1",
+            video_path,
+        ]
+        probe_proc = await asyncio.create_subprocess_exec(
+            *probe_cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        probe_out, _ = await probe_proc.communicate()
+        has_video_stream = "video" in probe_out.decode("utf-8", errors="ignore").lower()
+
+        if not has_video_stream:
+            # Media is audio-only (e.g. MP3, WAV, M4A). No video frames to extract.
+            return []
 
         fps_val = 1.0 / max(interval_seconds, 0.1)
         output_pattern = os.path.join(output_dir, "frame_%04d.jpg")

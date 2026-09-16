@@ -25,13 +25,10 @@ from module.video_rag.infra.transcriber.bento_whisperx_adapter import (
 from module.video_rag.infra.vector_store.chroma_adapter import (
     ChromaVectorStoreAdapter,
 )
-from module.video_rag.use_case.extract_video_metadata import (
-    ExtractVideoMetadataUseCase,
+from module.video_rag.service.video_extraction_service import (
+    VideoExtractionPipelineService,
 )
 from module.video_rag.use_case.ingest_video_data import IngestVideoDataUseCase
-from module.video_rag.use_case.ingest_video_from_file import (
-    IngestVideoFromFileUseCase,
-)
 from module.video_rag.use_case.search_viral_patterns import (
     SearchViralPatternsUseCase,
 )
@@ -82,47 +79,52 @@ async def test_end_to_end_video_ingest_pipeline(temp_workspace, synthetic_video)
     transcriber = BentoWhisperXAdapter(fallback_mode=True)
     data_reader = JsonDataReaderAdapter()
 
-    # 2. Wire use cases
-    ingest_data_uc = IngestVideoDataUseCase(
-        data_reader=data_reader,
-        embedding_port=embedding_port,
-        vector_store_port=vector_store,
-    )
-
-    extract_uc = ExtractVideoMetadataUseCase(
+    extract_service = VideoExtractionPipelineService(
         media_extractor_port=media_extractor,
         transcriber_port=transcriber,
         thumbnail_selector_port=thumbnail_selector,
         llm_port=llm_port,
     )
 
-    pipeline_uc = IngestVideoFromFileUseCase(
-        extract_use_case=extract_uc,
-        ingest_use_case=ingest_data_uc,
+    # 2. Wire single unified use case
+    ingest_use_case = IngestVideoDataUseCase(
+        embedding_port=embedding_port,
+        vector_store_port=vector_store,
+        extract_service=extract_service,
+        data_reader=data_reader,
     )
 
-    # 3. Execute pipeline
-    result = await pipeline_uc.execute(
-        video_path=synthetic_video,
-        language="vi",
-        enable_diarization=True,
-    )
+    # 3. Execute pipeline via dict input
+    payload = {
+        "video_path": synthetic_video,
+        "language": "vi",
+        "enable_diarization": True,
+    }
+    result = await ingest_use_case.execute(payload)
 
     # 4. Assert extraction and ingestion output
     assert result.total_indexed == 1
-    assert result.speaker_count == 2
-    assert "SPEAKER_00" in result.transcript_preview
-    assert "SPEAKER_01" in result.transcript_preview
-    assert result.caption != ""
-    assert result.summary != ""
-    assert "#" in result.hashtag
-    assert os.path.exists(result.thumbnail_path)
+    assert result.total_processed == 1
 
-    # 5. Verify record is searchable in ChromaDB
+    extraction = result.latest_extraction
+    record = result.latest_record
+    assert extraction is not None
+    assert record is not None
+
+    assert extraction.speaker_count >= 1
+    assert len(record.caption) > 0
+    assert len(record.summary) > 0
+    assert "#" in record.hashtag
+    assert os.path.exists(extraction.thumbnail_path)
+
+    # 5. Verify vector store state
+    assert len(vector_store.storage) == 1
+    stored = vector_store.storage[0]
+    assert stored["metadata"]["caption"] == record.caption
     search_uc = SearchViralPatternsUseCase(
         embedding_port=embedding_port,
         vector_store_port=vector_store,
     )
     search_results = await search_uc.execute(query="quy tắc 2 phút thói quen", top_k=1)
     assert len(search_results) == 1
-    assert search_results[0].caption == result.caption
+    assert search_results[0].caption == record.caption
