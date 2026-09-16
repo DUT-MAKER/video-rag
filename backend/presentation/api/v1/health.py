@@ -24,5 +24,3 @@ async def health_check() -> StandardResponse[dict[str, Any]]:
             "total_indexed_patterns": 0,
         },
     )
-
-

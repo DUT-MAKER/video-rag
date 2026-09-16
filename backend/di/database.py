@@ -1,6 +1,5 @@
 """Database engine and session factory configuration for Dishka."""
 
-
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from core.config import app_settings, db_settings

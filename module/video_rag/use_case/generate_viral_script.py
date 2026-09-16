@@ -99,7 +99,6 @@ class GenerateViralScriptUseCase:
             # If vector store is empty or unavailable, proceed with zero-shot generation
             reference_contexts = []
 
-
         # 3. Call LLM to generate viral script
         viral_script = await self._llm.generate_script(
             topic=clean_topic,

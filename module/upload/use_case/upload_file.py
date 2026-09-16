@@ -30,7 +30,6 @@ class UploadFileUseCase:
         key = f"{prefix}/{unique_name}"
 
         self._s3_client.upload_bytes(
-
             bucket=s3_settings.bucket_name,
             key=key,
             data=file_content,
@@ -45,4 +44,3 @@ class UploadFileUseCase:
             size_bytes=len(file_content),
             content_type=content_type,
         )
-

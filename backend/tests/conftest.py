@@ -47,9 +47,7 @@ class TestClientProvider(Provider):
             def get_object_url(self, bucket, key):
                 return f"http://mock-s3/{bucket}/{key}"
 
-            def generate_presigned_upload_url(
-                self, bucket, key, content_type, expires_in=3600
-            ):
+            def generate_presigned_upload_url(self, bucket, key, content_type, expires_in=3600):
                 return f"http://mock-s3/{bucket}/{key}?presigned=true"
 
         return MockS3Client()
@@ -85,9 +83,7 @@ async def test_engine():
 
 @pytest_asyncio.fixture(scope="function")
 async def test_session_maker(test_engine):
-    session_maker = async_sessionmaker(
-        test_engine, class_=AsyncSession, expire_on_commit=False
-    )
+    session_maker = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
     yield session_maker
     # Reset DB between tests
     async with test_engine.begin() as conn:
@@ -121,7 +117,6 @@ async def test_app(test_session_maker) -> AsyncIterable[FastAPI]:
 
     yield app
     await container.close()
-
 
 
 @pytest_asyncio.fixture(scope="function")

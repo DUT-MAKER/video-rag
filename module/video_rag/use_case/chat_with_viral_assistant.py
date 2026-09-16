@@ -185,7 +185,6 @@ class ChatWithViralAssistantUseCase:
         except Exception:
             return []
 
-
     async def execute_streaming(
         self,
         user_message: str,

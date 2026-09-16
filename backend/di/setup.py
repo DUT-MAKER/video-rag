@@ -21,6 +21,5 @@ def setup_di(app: FastAPI):
         VideoRagModuleProvider(),
     )
 
-
     app.state.dishka_container = container
     setup_dishka(container, app)

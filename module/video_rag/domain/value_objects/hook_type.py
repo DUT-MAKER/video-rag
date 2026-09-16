@@ -21,7 +21,6 @@ class HookType(str, Enum):
     STORY_ORIGIN = "story_origin"
     SECRET_HACK = "secret_hack"
 
-
     @classmethod
     def from_str(cls, value: str) -> "HookType":
         try:

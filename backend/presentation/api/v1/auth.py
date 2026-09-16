@@ -28,7 +28,6 @@ def _set_auth_cookie(response: Response, access_token: str):
     )
 
 
-
 @router.post("/register", status_code=status.HTTP_201_CREATED, response_model=UserOut)
 @inject
 async def register(

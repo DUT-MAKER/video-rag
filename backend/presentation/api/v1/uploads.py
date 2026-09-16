@@ -27,7 +27,6 @@ async def upload_file(
     return UploadOut(key=res.key, public_url=res.public_url)
 
 
-
 @router.post("/presign", response_model=UploadOut)
 @inject
 async def presign_upload(

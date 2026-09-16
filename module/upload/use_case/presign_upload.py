@@ -63,5 +63,3 @@ class PresignUploadUseCase:
             public_url=public_url,
             expires_in_seconds=3600,
         )
-
-

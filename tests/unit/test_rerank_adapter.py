@@ -69,7 +69,6 @@ async def test_rerank_enforces_batch_size_cap() -> None:
         assert len(sent_texts) == 32
 
 
-
 @pytest.mark.asyncio
 async def test_rerank_empty_documents() -> None:
     """Test that empty query or documents returns empty list immediately."""

@@ -70,7 +70,6 @@ async def _sse_stream_generator(
             yield f"data: {json.dumps(token_payload, ensure_ascii=False)}\n\n"
 
 
-
 @router.post(
     "/stream",
     response_class=StreamingResponse,
@@ -191,7 +190,6 @@ async def get_session_history(
     response_model=StandardResponse[dict[str, object]],
     summary="Delete a chat session",
 )
-
 @inject
 async def delete_chat_session(
     session_id: str,
@@ -207,7 +205,6 @@ async def delete_chat_session(
         message=f"Session '{session_id}' deleted successfully.",
         data={"session_id": session_id, "deleted": True},
     )
-
 
 
 @router.get(

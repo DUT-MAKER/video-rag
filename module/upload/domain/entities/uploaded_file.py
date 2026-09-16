@@ -11,4 +11,3 @@ class UploadedFileResult:
     filename: str | None = None
     size_bytes: int = 0
     content_type: str = "application/octet-stream"
-

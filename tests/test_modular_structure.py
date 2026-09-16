@@ -23,7 +23,6 @@ def test_app_initialization():
     assert vector_store_settings.table_name == "viral_video_embeddings"
     routes = list(app.openapi()["paths"].keys())
 
-
     assert "/api/v1/health" in routes
     assert "/api/v1/auth/register" in routes
     assert "/api/v1/auth/login" in routes
@@ -33,4 +32,3 @@ def test_app_initialization():
     assert "/api/v1/search" in routes
     assert "/api/v1/generate" in routes
     assert "/api/v1/chat" in routes
-

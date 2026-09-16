@@ -50,16 +50,13 @@ class S3Client(IS3Client):
             ExtraArgs=extra_args if extra_args else None,
         )
 
-
     def get_object_url(self, bucket: str, key: str) -> str:
         """Generates the direct HTTP/HTTPS URL for the S3 object."""
         if self._endpoint_url:
             return f"{self._endpoint_url}/{bucket}/{key}"
         return f"https://{bucket}.s3.amazonaws.com/{key}"
 
-    def generate_presigned_upload_url(
-        self, bucket: str, key: str, content_type: str, expires_in: int = 3600
-    ) -> str:
+    def generate_presigned_upload_url(self, bucket: str, key: str, content_type: str, expires_in: int = 3600) -> str:
         """Generates a presigned PUT upload URL using boto3."""
         return self._client.generate_presigned_url(
             "put_object",

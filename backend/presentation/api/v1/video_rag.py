@@ -43,9 +43,7 @@ async def ingest_video_data(
     elif payload.file_path is not None:
         result = await use_case.execute(source=payload.file_path)
     else:
-        raise DomainValidationError(
-            "Either 'file_path' or 'records' must be provided in request body."
-        )
+        raise DomainValidationError("Either 'file_path' or 'records' must be provided in request body.")
 
     return StandardResponse(
         success=True,
@@ -113,7 +111,6 @@ async def search_viral_patterns(
 )
 @inject
 async def generate_viral_script(
-
     payload: GenerateScriptRequestDTO,
     use_case: FromDishka[GenerateViralScriptUseCase],
 ) -> StandardResponse[ViralScriptResponseDTO]:

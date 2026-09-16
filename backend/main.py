@@ -75,7 +75,6 @@ def create_app() -> FastAPI:
             """Convenience redirect to /chat."""
             return RedirectResponse(url="/chat")
 
-
     @app.get("/", tags=["Root"])
     async def root():
         return {
@@ -91,7 +90,6 @@ def create_app() -> FastAPI:
         }
 
     return app
-
 
 
 app = create_app()

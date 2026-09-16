@@ -68,4 +68,3 @@ class SearchViralPatternsUseCase:
             return reranked_contexts or candidates[:top_k]
 
         return candidates[:top_k]
-

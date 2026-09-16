@@ -122,9 +122,7 @@ class FakeRerankPort(IRerankPort):
     def __init__(self, reversed_order: bool = False) -> None:
         self.reversed_order = reversed_order
 
-    async def rerank(
-        self, query: str, documents: list[str], top_n: int = 3
-    ) -> list[RerankedDocument]:
+    async def rerank(self, query: str, documents: list[str], top_n: int = 3) -> list[RerankedDocument]:
         indices = list(range(len(documents)))
         if self.reversed_order:
             indices = list(reversed(indices))
@@ -135,7 +133,6 @@ class FakeRerankPort(IRerankPort):
 
 
 @pytest.mark.asyncio
-
 async def test_ingest_video_data_use_case() -> None:
     sample_record = RawVideoRecord(
         caption="2-Minute Rule",
@@ -311,4 +308,3 @@ async def test_search_viral_patterns_with_reranking() -> None:
     assert results[0].id == "v2"
     assert results[0].score == 0.99
     assert results[1].id == "v1"
-

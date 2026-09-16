@@ -61,7 +61,6 @@ class DatabaseSessionProvider(Provider):
                 raise
 
 
-
 class AuthModuleProvider(Provider):
     """Dishka provider for Auth module."""
 
@@ -147,7 +146,6 @@ class VideoRagModuleProvider(Provider):
             fallback_mode=vector_store_settings.use_local_fallback,
         )
 
-
     @provide
     def chat_session_store_port(self) -> IChatSessionStorePort:
         return InMemoryChatSessionAdapter()
@@ -222,5 +220,3 @@ class VideoRagModuleProvider(Provider):
             rerank_port=rerank_port if rerank_settings.enabled else None,
             candidate_k=rerank_settings.candidate_k,
         )
-
-

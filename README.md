@@ -171,7 +171,6 @@ alembic upgrade head
 ### 4. Khởi chạy Backend API
 ```bash
 uvicorn backend.main:app --reload --port 8000
-# hoặc: python main.py
 ```
 * **Swagger UI:** `http://localhost:8000/docs`
 * **Chat Client UI:** `http://localhost:8000/app`

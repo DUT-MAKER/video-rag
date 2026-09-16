@@ -7,9 +7,7 @@ class AppException(Exception):
     status_code: int = 500
     message: str = "An unexpected error occurred"
 
-    def __init__(
-        self, message: str | None = None, status_code: int | None = None
-    ) -> None:
+    def __init__(self, message: str | None = None, status_code: int | None = None) -> None:
         super().__init__(message or self.message)
         if message is not None:
             self.message = message
@@ -50,9 +48,11 @@ class ServiceUnavailableException(AppException):
 # Domain-specific base exceptions
 class DomainError(Exception):
     """Base domain exception."""
+
     pass
 
 
 class DomainValidationError(DomainError):
     """Business validation rule violation."""
+
     pass
