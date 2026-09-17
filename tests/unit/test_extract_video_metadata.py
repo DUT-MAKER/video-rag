@@ -68,11 +68,17 @@ async def test_extract_video_metadata_use_case_success(dummy_video_file):
         "hashtag": "#test #viral",
     }
 
+    # Mock Video Store
+    from module.video_rag.service.video_store_service import VideoStoreService
+    mock_video_store = AsyncMock(spec=VideoStoreService)
+    mock_video_store.upload_thumbnail_file.return_value = "https://dutmakers3.dutai.io.vn/video-rag/thumbnails/test.jpg"
+
     use_case = ExtractVideoMetadataUseCase(
         media_extractor_port=mock_media,
         transcriber_port=mock_transcriber,
         thumbnail_selector_port=mock_thumbnail,
         llm_port=mock_llm,
+        video_store_service=mock_video_store,
     )
 
     result = await use_case.execute(dummy_video_file, language="vi")
