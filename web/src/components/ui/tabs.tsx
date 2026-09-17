@@ -48,7 +48,7 @@ export function TabsList({
   return (
     <div
       className={cn(
-        "inline-flex h-9 items-center justify-center rounded-lg border border-[#2e3352] bg-[#161826] p-1 text-xs text-[#9396aa]",
+        "inline-flex h-11 items-center justify-center rounded-full border border-[#ffe0d5] bg-[#fff0eb] p-1 text-xs text-[#667085]",
         className
       )}
     >
@@ -76,10 +76,10 @@ export function TabsTrigger({
       type="button"
       onClick={() => ctx.setActiveTab(value)}
       className={cn(
-        "inline-flex cursor-pointer select-none items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium transition-all",
+        "inline-flex cursor-pointer select-none items-center justify-center whitespace-nowrap rounded-full px-4 py-1.5 text-xs font-bold transition-all",
         isActive
-          ? "border border-[#2e3352] bg-[#1d2035] font-semibold text-[#e9e9ed] shadow-sm"
-          : "text-[#9396aa] hover:bg-[#1d2035]/50 hover:text-[#e9e9ed]",
+          ? "border border-[#ffe6dc] bg-white font-black text-[#ff7442] shadow-[0_4px_12px_rgba(255,116,66,0.12)]"
+          : "text-[#667085] hover:text-[#0f172a]",
         className
       )}
     >
@@ -104,3 +104,4 @@ export function TabsContent({
 
   return <div className={cn("outline-none", className)}>{children}</div>;
 }
+

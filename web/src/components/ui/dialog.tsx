@@ -16,15 +16,15 @@ export function Dialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="fixed inset-0 bg-[#0d0e17]/80 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-slate-900/30 backdrop-blur-xs transition-opacity"
         onClick={() => onOpenChange(false)}
       />
-      <div className="animate-in fade-in zoom-in-95 relative z-10 w-full max-w-lg rounded-xl border border-[#2e3352] bg-[#1d2035] p-6 text-[#e9e9ed] shadow-2xl duration-150">
+      <div className="animate-in fade-in zoom-in-95 relative z-10 w-full max-w-lg rounded-[28px] border border-[#ffe6dc] bg-white p-7 text-[#0f172a] shadow-[0_30px_80px_rgba(255,116,66,0.12)] duration-150">
         {children}
         <button
           type="button"
           onClick={() => onOpenChange(false)}
-          className="absolute right-4 top-4 cursor-pointer rounded-md p-1 text-[#9396aa] transition-colors hover:bg-[#262a45] hover:text-[#e9e9ed]"
+          className="absolute right-5 top-5 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-[#ffe6dc] bg-white text-[#667085] transition-colors hover:bg-[#fff7f4] hover:text-[#0f172a]"
         >
           <X className="h-4 w-4" />
         </button>
@@ -52,7 +52,7 @@ export function DialogTitle({
   return (
     <h2
       className={cn(
-        "text-base font-semibold tracking-tight text-[#e9e9ed]",
+        "text-lg font-black tracking-tight text-[#0f172a]",
         className
       )}
       {...props}
@@ -66,7 +66,7 @@ export function DialogDescription({
 }: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
     <p
-      className={cn("text-xs leading-relaxed text-[#9396aa]", className)}
+      className={cn("text-xs leading-relaxed text-[#667085]", className)}
       {...props}
     />
   );
@@ -79,10 +79,11 @@ export function DialogFooter({
   return (
     <div
       className={cn(
-        "mt-4 flex items-center justify-end space-x-2 border-t border-[#23273e] pt-4",
+        "mt-6 flex items-center justify-end space-x-2 border-t border-[#f1f5f9] pt-4",
         className
       )}
       {...props}
     />
   );
 }
+

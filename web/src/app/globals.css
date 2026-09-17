@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
 @theme inline {
+  --font-heading: var(--font-heading, "Plus Jakarta Sans", sans-serif);
+  --font-body: var(--font-body, "Inter", sans-serif);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
@@ -10,38 +13,66 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
   --color-border-subtle: var(--border-subtle);
+  
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-mid: var(--primary-mid);
+  --color-primary-end: var(--primary-end);
+  --color-primary-light: var(--primary-light);
+  --color-primary-lighter: var(--primary-lighter);
+  --color-primary-subtle: var(--primary-subtle);
+  --color-primary-border: var(--primary-border);
+  --color-primary-border-light: var(--primary-border-light);
+
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
   --color-accent-hook: var(--accent-hook);
   --color-accent-success: var(--accent-success);
   --color-section: var(--section);
+
+  --color-dark: var(--dark);
+  --color-text-dark: var(--text-dark);
+  --color-gray: var(--gray);
+  --color-white-moly: var(--white-moly);
 }
 
 :root {
-  /* Nocturne Palette */
-  --background: #161826;
-  --foreground: #e9e9ed;
-  --surface: #1d2035;
-  --surface-hover: #262a45;
-  --surface-elevated: #22263d;
-  --muted: #c5c7d5;
-  --muted-foreground: #9396aa;
-  --border: #2e3352;
-  --border-subtle: #23273e;
+  /* Markee Warm Palette */
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --surface: #ffffff;
+  --surface-hover: #fff7f4;
+  --surface-elevated: #fffcfb;
+  --muted: #475569;
+  --muted-foreground: #667085;
+  --border: #f1f5f9;
+  --border-subtle: #ffe6dc;
 
-  /* Nocturne Blurple Accent */
-  --accent: #9184d9;
+  /* Markee Primary Orange */
+  --primary: #ff7442;
+  --primary-hover: #e6521e;
+  --primary-mid: #ff8c64;
+  --primary-end: #ffa382;
+  --primary-light: #fff0eb;
+  --primary-lighter: #ffe4d9;
+  --primary-subtle: #fffbf9;
+  --primary-border: #ffe0d5;
+  --primary-border-light: #ffe6dc;
+  --primary-foreground: #ffffff;
+
+  /* Markee Accents */
+  --accent: #ff7442;
   --accent-foreground: #ffffff;
-  --primary: #9184d9;
-  --primary-foreground: #161826;
+  --accent-hook: #ff7442;
+  --accent-ai: #ff8c64;
+  --accent-success: #27c93f;
+  --section: #fff7f4;
 
-  /* Domain-Specific Accents */
-  --accent-hook: #fb923c;
-  --accent-ai: #9184d9;
-  --accent-success: #34d399;
-  --section: #20233b;
+  /* Neutrals */
+  --dark: #0f172a;
+  --text-dark: #101828;
+  --gray: #475569;
+  --white-moly: #fffcfb;
 }
 
 @layer base {
@@ -59,8 +90,13 @@
     background: var(--background);
     color: var(--foreground);
     overflow-x: hidden;
+    font-family: var(--font-body, "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading, "Plus Jakarta Sans", "Inter", sans-serif);
   }
 
   a {
@@ -69,32 +105,47 @@
   }
 }
 
-/* Nocturne Minimalist Scrollbars */
+/* Markee Warm Minimalist Scrollbars */
 ::-webkit-scrollbar {
   width: 7px;
   height: 7px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--background);
+  background: #fff6f2;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: #ffd0bf;
   border-radius: 9999px;
-  border: 1px solid var(--background);
+  border: 1px solid #fff6f2;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3d446c;
+  background: #ff7442;
 }
 
-/* Nocturne Utilities */
+/* Markee Utilities */
 .font-mono-code {
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
     "Courier New", monospace;
 }
 
-.lighten {
-  mix-blend-mode: lighten;
+.markee-dot-pattern {
+  background-image: radial-gradient(#ffeae0 1.4px, transparent 1.4px);
+  background-size: 20px 20px;
+}
+
+.markee-gradient-bg {
+  background: linear-gradient(135deg, #fff6f2 0%, #ffffff 48%, #ffeedd 100%);
+}
+
+.markee-cta-gradient {
+  background: linear-gradient(90deg, #ff7442 0%, #ff8c64 100%);
+}
+
+.markee-text-gradient {
+  background: linear-gradient(90deg, #ff7442 0%, #ffbd2e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .divider-fade {
@@ -102,8 +153,9 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    var(--border) 48px,
-    var(--border) calc(100% - 48px),
+    #ffe0d5 48px,
+    #ffe0d5 calc(100% - 48px),
     transparent 100%
   );
 }
+

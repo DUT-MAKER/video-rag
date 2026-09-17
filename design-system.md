@@ -1,148 +1,224 @@
-# Nocturne Design System (Next.js 16 & Tailwind CSS v4)
+# Markee Design System
 
-**Nocturne** là hệ thống thiết kế giao diện tối êm dịu, cô đọng (quiet, compact dark interface): nền xanh xám cận trung tính (`#161826`), kiểu chữ **Inter**, bo góc mềm `8px` (`rounded-lg`), và màu nhấn blurple (`#9184d9`) được sử dụng tinh tế dưới dạng đường nét (line) và phát sáng mờ (glow) thay vì đổ mảng màu đậm (flood).
+This document is the source of truth for UI styling in this project. Any AI or developer building frontend screens must read this file before changing UI code.
 
-Hệ thống được tích hợp đồng bộ vào frontend **Next.js 16 (App Router)**, **React 19**, **Tailwind CSS v4** và **Lucide React**.
+The visual identity follows Markee: warm, bright, rounded, polished, AI-marketing focused. The interface should feel like a friendly operating desk for marketing teams and content creators, not a generic dark/cold SaaS dashboard.
 
----
+## AI Implementation Checklist
 
-## 1. Nguyên Tắc Cốt Lõi (Design Principles)
+Before coding any UI:
 
-1. **Quiet & Desaturated Ground**:
-   - Không sử dụng đen thuần (`#000000`) hay xám đơn điệu. Nền là xanh xám tối sâu (`#161826`), mang lại chiều sâu và giảm mỏi mắt khi làm việc lâu trong Studio.
-   - Bề mặt (`surface`) được nâng cấp dần theo sắc độ OKLCH (`#1d2035` -> `#262a45`).
-2. **Accent as Line & Glow, Never as a Flood**:
-   - Màu nhấn Blurple (`#9184d9`) chỉ xuất hiện ở các chi tiết đắt giá: đường viền 1px, ánh sáng viền khi hover (`box-shadow: 0 0 12px rgba(145,132,217,0.25)`), `:focus-visible` ring và icon hành động.
-   - Tuyệt đối không đổ nền đặc accent trên diện tích lớn (trừ các badge phân loại nhỏ hoặc banner đặc thù).
-3. **Fading Rules & Asymmetry**:
-   - Đường phân cách (dividers) không dừng đột ngột mà mờ dần về trong suốt ở hai đầu qua 48px (`.divider-fade`).
-   - Bố cục ưu tiên căn trái, khoảng trắng thoáng đãng phía bên phải.
-4. **Natural Image Blending (`.lighten`)**:
-   - Toàn bộ ảnh thumbnail hoặc hình chụp nền tối được áp dụng `mix-blend-mode: lighten` qua lớp `.lighten` để hòa tan hoàn toàn nền đen của ảnh vào màu nền của giao diện.
+- Prefer warm orange primary colors, white cards, soft peach backgrounds, rounded pills, and soft shadows.
+- Use `Plus Jakarta Sans` for headings and `Inter` for body text.
+- Avoid purple/blue gradient-heavy UI unless the element is a secondary accent.
+- Avoid flat gray admin UI. Operational screens can be dense, but must still use Markee's warm visual language.
+- Do not introduce a new unrelated palette, font stack, card style, or button style.
+- If building dashboards, internal tools, tables, forms, workflows, or cards, adapt this design system instead of inventing new styling.
 
----
+## Brand Personality
 
-## 2. Bảng Design Tokens (CSS Variables & Tailwind v4)
+ViralCopilot / Markee is:
 
-Khai báo tại [`web/src/app/globals.css`](file:///Users/vuongngochau/Workplace/projects/rag-viral-video/web/src/app/globals.css):
+- Warm and optimistic.
+- AI-native but approachable.
+- Video marketing-focused and action-oriented.
+- Polished, bright, and modern.
+
+It is not:
+
+- Dark enterprise admin.
+- Purple AI template.
+- Plain Tailwind gray dashboard.
+- Minimal to the point of feeling unfinished.
+
+## Typography
+
+Primary heading font:
 
 ```css
-@import "tailwindcss";
-
-:root {
-  /* Nocturne Base Ground & Surfaces */
-  --background: #161826;       /* Nền xanh xám tối sâu */
-  --foreground: #e9e9ed;       /* Văn bản chính sáng dịu */
-  --surface: #1d2035;          /* Bề mặt panel, card, sidebar */
-  --surface-hover: #262a45;    /* Trạng thái hover của bề mặt */
-  --surface-elevated: #22263d; /* Container nổi (Modal, Dropdown) */
-  --muted: #c5c7d5;            /* Văn bản thứ cấp */
-  --muted-foreground: #9396aa; /* Nhãn phụ, placeholder, timestamp */
-  --border: #2e3352;           /* Viền giao diện tiêu chuẩn */
-  --border-subtle: #23273e;    /* Viền ngăn cách phụ */
-
-  /* Nocturne Blurple Accent */
-  --accent: #9184d9;           /* Sắc blurple đặc trưng của Nocturne */
-  --accent-foreground: #ffffff;
-  --primary: #9184d9;
-  --primary-foreground: #161826;
-
-  /* Domain-Specific Video RAG Accents */
-  --accent-hook: #fb923c;      /* Cam: Phân tích Hook 3s đầu */
-  --accent-ai: #9184d9;        /* Tím Nocturne: Tác vụ sinh kịch bản RAG */
-  --accent-success: #34d399;   /* Xanh ngọc: Chỉ số Viral & Retention cao */
-  --section: #20233b;          /* Nền phân đoạn nội dung đậm chất */
-}
+'Plus Jakarta Sans', sans-serif
 ```
 
----
+Body font:
 
-## 3. Kiểu Chữ (Typography) & Biểu Tượng (Icons)
+```css
+'Inter', sans-serif
+```
 
-### Kiểu chữ: Inter
-Được nhúng trực tiếp qua `next/font/google` trong [`web/src/app/layout.tsx`](file:///Users/vuongngochau/Workplace/projects/rag-viral-video/web/src/app/layout.tsx):
-- Tiêu đề (`headings`) và nội dung (`body`) đều sử dụng **Inter** với trọng số tối đa **font-semibold** (`500 - 600`), tránh dùng font quá đậm để giữ sự thanh lịch.
-- Mã code, Timestamps kịch bản video, và Prompt JSON sử dụng class `.font-mono-code`:
-  ```css
-  .font-mono-code {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  }
-  ```
+Use:
 
-### Biểu tượng: Lucide React
-- Sử dụng **`lucide-react`** với stroke-width từ `1.5` đến `2`.
-- Kích thước chuẩn: `w-3.5 h-3.5` hoặc `w-4 h-4` cho buttons/chips, `w-5 h-5` cho header navigation.
+- `Plus Jakarta Sans` for H1, H2, large numbers, section titles, brand names, and strong dashboard labels.
+- `Inter` for paragraphs, table cells, metadata, form labels, descriptions, and body text.
+- Heavy heading weights: `700`, `800`, `900`.
+- Body weights: `400`, `500`, `600`, `700`.
 
----
-
-## 4. Danh Mục Thành Phần Giao Diện (Component Catalog)
-
-### Nút Bấm ([`Button`](file:///Users/vuongngochau/Workplace/projects/rag-viral-video/web/src/components/ui/button.tsx))
-Hành động chính (`primary`) trong Nocturne là **nút viền 1px accent phát sáng nhẹ**, không dùng nền đặc:
+Recommended Tailwind snippets:
 
 ```tsx
-// Nút Primary viền Accent chuẩn Nocturne
-<Button variant="primary">
-  <span>Tạo Kịch Bản</span>
-</Button>
-
-// Nút phụ (Secondary)
-<Button variant="secondary">Hủy</Button>
-
-// Nút Ghost
-<Button variant="ghost">Chi tiết</Button>
+className="[font-family:'Plus_Jakarta_Sans','Inter',sans-serif] font-black tracking-[-0.02em]"
 ```
 
-- **Keyboard Focus chuẩn Nocturne**:
-  ```css
-  :focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-  ```
-
-### Thẻ Nhãn ([`Badge`](file:///Users/vuongngochau/Workplace/projects/rag-viral-video/web/src/components/ui/badge.tsx))
-- `variant="accent"` / `variant="ai"`: Viền `#9184d9/50`, nền `#9184d9/15`, chữ `#c5bdf0`.
-- `variant="hook"`: Viền `orange-400/40`, nền `orange-500/10`, chữ `orange-200`.
-- `variant="mono"`: Hiển thị thời lượng (`00:03 - 00:15`) hoặc tag nền tảng (`TikTok`, `Reels`).
-
-### Thẻ Bề Mặt ([`Card`](file:///Users/vuongngochau/Workplace/projects/rag-viral-video/web/src/components/ui/card.tsx))
-- Nền: `bg-[#1d2035]` (`--surface`).
-- Viền: `border-[#2e3352]` (`--border`).
-- Bo góc: `rounded-lg` (`8px`).
-
-### Ô Nhập Liệu ([`Input`](file:///Users/vuongngochau/Workplace/projects/rag-viral-video/web/src/components/ui/input.tsx) & [`Textarea`](file:///Users/vuongngochau/Workplace/projects/rag-viral-video/web/src/components/ui/textarea.tsx))
-- Nền: `bg-[#161826]`.
-- Viền: `border-[#2e3352]`, focus kích hoạt viền `border-[#9184d9]` và ring `ring-[#9184d9]`.
-
----
-
-## 5. Lớp Tiện Ích Đặc Thù Của Nocturne
-
-### 1. Đường Kẻ Mờ Hai Đầu (`.divider-fade`)
-Thay vì đường kẻ ngang cứng nhắc cắt đứt giao diện, Nocturne sử dụng hiệu ứng tan dần vào nền:
-```html
-<div className="divider-fade my-6 w-full" />
+```tsx
+className="[font-family:'Inter','Segoe_UI',sans-serif] text-[#475569]"
 ```
 
-### 2. Hòa Tan Hình Ảnh (`.lighten`)
-Bọc bất kỳ ảnh minh họa hoặc ảnh chụp mẫu nào để các sắc độ tối tự động hòa vào nền xanh xám của trang:
-```html
-<div className="lighten rounded-lg overflow-hidden">
-  <img src="/thumbnail.jpg" alt="Preview" />
+## Color Tokens
+
+Use these colors consistently.
+
+### Primary Orange
+
+| Token | Hex | Usage |
+| --- | --- | --- |
+| `primary` | `#ff7442` | Primary CTA, active nav, highlight text, brand accents |
+| `primary-hover` | `#e6521e` | CTA hover, active text hover |
+| `primary-mid` | `#ff8c64` | Gradient midpoint |
+| `primary-end` | `#ffa382` | Logo gradient end |
+| `primary-light` | `#fff0eb` | Badges, icon backgrounds, soft chips |
+| `primary-lighter` | `#ffe4d9` | Hover backgrounds |
+| `primary-subtle` | `#fffbf9` | Warm card/page fill |
+| `primary-border` | `#ffe0d5` | Warm card borders |
+| `primary-border-light` | `#ffe6dc` | Page frame borders |
+
+### Yellow Accent
+
+| Token | Hex | Usage |
+| --- | --- | --- |
+| `yellow` | `#ffd866` | AI highlights, warm indicator |
+| `yellow-accent` | `#ffbd2e` | Gradient text end, warning accent |
+| `yellow-light` | `#fef9c3` | Soft warning backgrounds |
+| `yellow-dark` | `#d97706` | Warning text |
+
+### Neutrals
+
+| Token | Hex | Usage |
+| --- | --- | --- |
+| `dark` | `#0f172a` | Main text, dark cards |
+| `text-dark` | `#101828` | Strong text |
+| `gray` | `#475569` | Body text |
+| `muted` | `#667085` | Secondary text |
+| `slate-400` | `#94a3b8` | Metadata, disabled text |
+| `slate-300` | `#cbd5e1` | Icons, light separators |
+| `light-gray` | `#f8fafc` | Window headers, subtle table headers |
+| `border-light` | `#f1f5f9` | Default card border |
+| `border-medium` | `#e2e8f0` | Stronger border |
+| `white-moly` | `#fffcfb` | Warm white page surface |
+
+### Semantic Accents
+
+| Token | Hex | Usage |
+| --- | --- | --- |
+| `success` | `#27c93f` | Positive status, window dot |
+| `danger` | `#ff0000` | Critical status |
+| `rose` | `#e1306c` | Social/TikTok-like accent, urgent but not destructive |
+| `facebook-blue` | `#1877f2` | Facebook/channel accent |
+| `twitter-blue` | `#1da1f2` | Informational secondary accent |
+| `brown-dark` | `#432c24` | Dark warm card gradient |
+| `brown-muted` | `#6a4f44` | Warm table header text |
+
+## Gradients
+
+Primary CTA:
+
+```css
+linear-gradient(90deg, #ff7442, #ff8c64)
+```
+
+Logo:
+
+```css
+linear-gradient(135deg, #ff7442, #ffa382)
+```
+
+Hero/page background:
+
+```css
+linear-gradient(135deg, #fff6f2 0%, #ffffff 48%, #ffeedd 100%)
+```
+
+Gradient text:
+
+```css
+linear-gradient(90deg, #ff7442 0%, #ffbd2e 100%)
+```
+
+Dark AI card:
+
+```css
+linear-gradient(135deg, #432c24, #0f172a)
+```
+
+## Page Structure
+
+Use a warm framed shell for dashboard/internal product pages:
+
+```tsx
+<main className="min-h-screen bg-white text-[#0f172a] [font-family:'Inter','Segoe_UI',sans-serif]">
+  <div className="bg-[linear-gradient(135deg,#fff6f2_0%,#ffffff_48%,#ffeedd_100%)] p-3 sm:p-5">
+    <div className="mx-auto max-w-[1480px] rounded-[28px] border border-[#ffe6dc] bg-[#fffcfb]/95 p-3 shadow-[0_30px_80px_rgba(255,116,66,0.10)] sm:p-4 lg:p-5">
+      {/* screen content */}
+    </div>
+  </div>
+</main>
+```
+
+## Cards
+
+Default card:
+
+```tsx
+className="rounded-[24px] border border-[#f1f5f9] bg-white p-5 shadow-[0_16px_38px_rgba(15,23,42,0.05)] text-[#0f172a]"
+```
+
+Stat card:
+
+```tsx
+className="rounded-[22px] border border-[#f1f5f9] bg-white p-5 shadow-[0_12px_28px_rgba(15,23,42,0.04)] transition-transform hover:-translate-y-1"
+```
+
+Warm suggestion card:
+
+```tsx
+className="rounded-[20px] border border-[#ffe0d5] bg-[linear-gradient(135deg,#fff7f4,#ffffff)] p-4"
+```
+
+Dark AI card:
+
+```tsx
+className="rounded-[24px] border border-[#ffe0d5] bg-[linear-gradient(135deg,#432c24,#0f172a)] p-5 text-white shadow-[0_18px_42px_rgba(67,44,36,0.18)]"
+```
+
+## Buttons
+
+Primary CTA:
+
+```tsx
+className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(90deg,#ff7442,#ff8c64)] px-5 py-3 text-sm font-black text-white shadow-[0_10px_25px_rgba(255,116,66,0.22)] transition-transform hover:-translate-y-0.5"
+```
+
+Secondary icon button:
+
+```tsx
+className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#ffe6dc] bg-white text-[#475569] shadow-[0_8px_20px_rgba(0,0,0,0.04)] hover:bg-[#fff7f4]"
+```
+
+Soft action:
+
+```tsx
+className="inline-flex items-center gap-2 rounded-full border border-[#ffe0d5] bg-[#fff0eb] px-4 py-2 text-sm font-bold text-[#ff7442] hover:bg-[#ffe4d9]"
+```
+
+## Logo
+
+```tsx
+<div className="relative flex h-11 w-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,#ff7442,#ffa382)] text-white font-black text-base shadow-[0_8px_20px_rgba(255,116,66,0.22)]">
+  VC
+  <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-white shadow-xs" />
 </div>
 ```
 
----
-
-## 6. Quy Tắc Khi Phát Triển UI (Do & Don't)
-
-### Do (Nên làm)
-- Giữ sắc độ màu (chroma) thấp ở toàn bộ các phần nền và viền, chỉ để sắc tím blurple `#9184d9` và cam `#fb923c` đóng vai trò dẫn dắt thị giác.
-- Sử dụng bo góc cố định `8px` (`rounded-lg`) để tạo sự gọn gàng, chặt chẽ cho giao diện studio chuyên nghiệp.
-- Cho phép hiệu ứng `active:scale-[0.98]` khi click chuột để tăng phản hồi xúc giác.
-
-### Don't (Không nên làm)
-- Không dùng màu đen thuần `#000000` hoặc trắng gắt `#ffffff` làm nền các khối lớn.
-- Không phủ màu tím đặc lên toàn bộ các nút bấm lớn gây chói và mất đi vẻ điềm tĩnh (quiet) của Nocturne.
-- Không tăng `font-weight` của các tiêu đề vượt quá `600`; tạo sự phân cấp thông qua kích thước font chữ và khoảng cách (space).
+Logo rules:
+- Circular, not square.
+- Orange gradient (`#ff7442` -> `#ffa382`).
+- Small white dot in top-right.
+- White text/mark inside.

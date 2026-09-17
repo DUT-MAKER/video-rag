@@ -1,14 +1,7 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 import Providers from "./providers";
-import { cn } from "@/lib/utils";
 import "./globals.css";
-
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "ViralCopilot — RAG Viral Video Studio",
@@ -24,13 +17,22 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn("h-full antialiased", inter.className)}
+      className="h-full antialiased"
       suppressHydrationWarning
     >
-      <body className="min-h-full" suppressHydrationWarning>
-        <NextTopLoader color="#9184d9" height={3} showSpinner={false} />
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800;900&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="min-h-full bg-white text-[#0f172a]" suppressHydrationWarning>
+        <NextTopLoader color="#ff7442" height={3} showSpinner={false} />
         <Providers>{children}</Providers>
       </body>
     </html>
   );
 }
+

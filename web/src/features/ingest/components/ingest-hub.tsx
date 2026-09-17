@@ -99,19 +99,19 @@ export function IngestHub() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8 p-6 text-white">
+    <div className="mx-auto max-w-5xl space-y-8 p-6 text-[#0f172a]">
       {/* Page Header */}
-      <div className="space-y-1.5 border-b border-[#2e3352] pb-5">
+      <div className="space-y-1.5 border-b border-[#ffe6dc] pb-5">
         <div className="flex items-center gap-2">
-          <Badge variant="ai">AI Ingestion Pipeline</Badge>
-          <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-zinc-400">
+          <Badge variant="secondary">AI Ingestion Pipeline</Badge>
+          <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-[#ea580c]">
             WhisperX • Pyannote Diarization • pgvector
           </span>
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+        <h1 className="text-2xl font-extrabold tracking-tight text-[#0f172a] md:text-3xl font-heading">
           Video Ingestion
         </h1>
-        <p className="max-w-2xl text-xs leading-relaxed text-zinc-300">
+        <p className="max-w-2xl text-xs leading-relaxed text-[#667085]">
           Upload 1 video/audio để trích xuất tự động: BentoML WhisperX STT,
           nhận diện người nói (Speaker Diarization), tạo thumbnail và vector hóa vào PostgreSQL pgvector.
         </p>
@@ -119,65 +119,65 @@ export function IngestHub() {
 
       {/* Infrastructure Status Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Card className="space-y-2 border-[#2e3352] bg-[#141418] p-4">
+        <Card className="space-y-2 rounded-[22px] border-[#f1f5f9] bg-white p-5 shadow-xs transition-shadow hover:shadow-md">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-zinc-300">Vector Store</span>
+            <span className="text-xs font-bold text-[#667085]">Vector Store</span>
             <Badge variant="success">Active</Badge>
           </div>
-          <p className="text-sm font-bold text-white">PostgreSQL + pgvector</p>
-          <p className="font-mono text-xs text-zinc-400">
+          <p className="text-sm font-bold text-[#0f172a]">PostgreSQL + pgvector</p>
+          <p className="font-mono text-xs text-[#94a3b8]">
             Table: viral_video_embeddings
           </p>
         </Card>
 
-        <Card className="space-y-2 border-[#2e3352] bg-[#141418] p-4">
+        <Card className="space-y-2 rounded-[22px] border-[#f1f5f9] bg-white p-5 shadow-xs transition-shadow hover:shadow-md">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-zinc-300">STT & Diarization</span>
-            <Badge variant="ai">BentoML WhisperX</Badge>
+            <span className="text-xs font-bold text-[#667085]">STT & Diarization</span>
+            <Badge variant="secondary">BentoML WhisperX</Badge>
           </div>
-          <p className="text-sm font-bold text-white">large-v3-turbo + Pyannote</p>
-          <p className="font-mono text-xs text-zinc-400">Port 3001 • CUDA GPU</p>
+          <p className="text-sm font-bold text-[#0f172a]">large-v3-turbo + Pyannote</p>
+          <p className="font-mono text-xs text-[#94a3b8]">Port 3001 • CUDA GPU</p>
         </Card>
 
-        <Card className="space-y-2 border-[#2e3352] bg-[#141418] p-4">
+        <Card className="space-y-2 rounded-[22px] border-[#f1f5f9] bg-white p-5 shadow-xs transition-shadow hover:shadow-md">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-zinc-300">Embedding Engine</span>
+            <span className="text-xs font-bold text-[#667085]">Embedding Engine</span>
             <Badge variant="success">BAAI/bge-m3</Badge>
           </div>
-          <p className="text-sm font-bold text-white">Dense Vector Embeddings</p>
-          <p className="font-mono text-xs text-zinc-400">Dimension: 1024 / HNSW</p>
+          <p className="text-sm font-bold text-[#0f172a]">Dense Vector Embeddings</p>
+          <p className="font-mono text-xs text-[#94a3b8]">Dimension: 1024 / HNSW</p>
         </Card>
       </div>
 
       {/* SINGLE VIDEO UPLOAD FORM */}
-      <Card className="border-[#2e3352] bg-[#141418]">
+      <Card className="rounded-[24px] border-[#ffe6dc] bg-[#fffcfb] shadow-xs">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base text-white">
-            <UploadCloud className="h-4 w-4 text-[#9184d9]" />
+          <CardTitle className="flex items-center gap-2 text-base text-[#0f172a]">
+            <UploadCloud className="h-5 w-5 text-[#ff7442]" />
             <span>Upload Tệp Tin Video / Audio</span>
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-[#667085]">
             Kéo thả hoặc duyệt file video từ máy tính của bạn để kích hoạt Use Case{" "}
-            <code className="rounded bg-black/40 px-1.5 py-0.5 font-mono text-[11px] text-[#c5bdf0]">
+            <code className="rounded-full bg-[#fff0eb] px-2 py-0.5 font-mono text-[11px] text-[#ea580c] border border-[#ffe0d5]">
               IngestVideoDataUseCase
             </code>
             .
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSingleVideoIngest} className="space-y-4">
+          <form onSubmit={handleSingleVideoIngest} className="space-y-5">
             {/* File Dropzone */}
             <div
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className={`group relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 transition-all ${
+              className={`group relative flex cursor-pointer flex-col items-center justify-center rounded-[20px] border-2 border-dashed p-8 transition-all ${
                 isDragging
-                  ? "border-[#9184d9] bg-[#9184d9]/10"
+                  ? "border-[#ff7442] bg-[#fff0eb]"
                   : selectedFile
                   ? "border-emerald-500/50 bg-emerald-500/5"
-                  : "border-[#2e3352] bg-[#161826]/60 hover:border-[#9184d9]/50 hover:bg-[#161826]"
+                  : "border-[#ffe0d5] bg-white hover:border-[#ff7442] hover:bg-[#fff9f6]"
               }`}
             >
               <input
@@ -191,14 +191,14 @@ export function IngestHub() {
               {selectedFile ? (
                 <div className="flex w-full items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="rounded-lg bg-emerald-500/20 p-2.5 text-emerald-300">
+                    <div className="rounded-xl bg-emerald-100 p-2.5 text-emerald-600">
                       <FileVideo className="h-6 w-6" />
                     </div>
                     <div>
-                      <p className="font-semibold text-sm text-white">
+                      <p className="font-semibold text-sm text-[#0f172a]">
                         {selectedFile.name}
                       </p>
-                      <p className="text-xs text-zinc-400">
+                      <p className="text-xs text-[#667085]">
                         {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB •{" "}
                         {selectedFile.type || "video/audio file"}
                       </p>
@@ -211,23 +211,23 @@ export function IngestHub() {
                       setSelectedFile(null);
                       if (fileInputRef.current) fileInputRef.current.value = "";
                     }}
-                    className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-white cursor-pointer"
+                    className="rounded-full p-2 text-[#94a3b8] hover:bg-[#fff0eb] hover:text-[#ff7442] cursor-pointer transition-colors"
                   >
                     <X className="h-4 w-4" />
                   </button>
                 </div>
               ) : (
                 <div className="text-center">
-                  <div className="mx-auto mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-[#9184d9]/15 text-[#9184d9]">
-                    <UploadCloud className="h-5 w-5" />
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#fff0eb] text-[#ff7442]">
+                    <UploadCloud className="h-6 w-6" />
                   </div>
-                  <p className="text-xs font-semibold text-white">
+                  <p className="text-xs font-semibold text-[#0f172a]">
                     Kéo thả video vào đây hoặc{" "}
-                    <span className="text-[#9184d9] underline underline-offset-2">
+                    <span className="text-[#ff7442] underline underline-offset-2">
                       chọn từ máy tính
                     </span>
                   </p>
-                  <p className="mt-1 text-[11px] text-zinc-400">
+                  <p className="mt-1 text-[11px] text-[#94a3b8]">
                     MP4, MKV, MOV, WebM, MP3, WAV...
                   </p>
                 </div>
@@ -238,8 +238,8 @@ export function IngestHub() {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               {/* Caption */}
               <div className="space-y-1.5">
-                <label className="flex items-center gap-1.5 text-xs font-bold text-zinc-200">
-                  <FileText className="h-3.5 w-3.5 text-zinc-400" />
+                <label className="flex items-center gap-1.5 text-xs font-bold text-[#0f172a]">
+                  <FileText className="h-3.5 w-3.5 text-[#ff7442]" />
                   <span>Caption (tuỳ chọn)</span>
                 </label>
                 <input
@@ -247,14 +247,14 @@ export function IngestHub() {
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
                   placeholder="Nhập caption nếu có..."
-                  className="h-9 w-full rounded-lg border border-[#2e3352] bg-[#161826] px-3 text-xs text-white outline-none transition focus:border-[#9184d9]"
+                  className="h-10 w-full rounded-xl border border-[#ffe0d5] bg-white px-3.5 text-xs text-[#0f172a] placeholder-[#94a3b8] outline-none transition focus:border-[#ff7442] focus:ring-2 focus:ring-[#ff7442]/10"
                 />
               </div>
 
               {/* Hashtag */}
               <div className="space-y-1.5">
-                <label className="flex items-center gap-1.5 text-xs font-bold text-zinc-200">
-                  <Hash className="h-3.5 w-3.5 text-zinc-400" />
+                <label className="flex items-center gap-1.5 text-xs font-bold text-[#0f172a]">
+                  <Hash className="h-3.5 w-3.5 text-[#ff7442]" />
                   <span>Hashtags (tuỳ chọn)</span>
                 </label>
                 <input
@@ -262,20 +262,20 @@ export function IngestHub() {
                   value={hashtag}
                   onChange={(e) => setHashtag(e.target.value)}
                   placeholder="#review #trend..."
-                  className="h-9 w-full rounded-lg border border-[#2e3352] bg-[#161826] px-3 text-xs text-white outline-none transition focus:border-[#9184d9]"
+                  className="h-10 w-full rounded-xl border border-[#ffe0d5] bg-white px-3.5 text-xs text-[#0f172a] placeholder-[#94a3b8] outline-none transition focus:border-[#ff7442] focus:ring-2 focus:ring-[#ff7442]/10"
                 />
               </div>
 
               {/* Language */}
               <div className="space-y-1.5">
-                <label className="flex items-center gap-1.5 text-xs font-bold text-zinc-200">
-                  <Globe className="h-3.5 w-3.5 text-zinc-400" />
+                <label className="flex items-center gap-1.5 text-xs font-bold text-[#0f172a]">
+                  <Globe className="h-3.5 w-3.5 text-[#ff7442]" />
                   <span>Ngôn ngữ STT</span>
                 </label>
                 <select
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-[#2e3352] bg-[#161826] px-3 text-xs text-white outline-none transition focus:border-[#9184d9]"
+                  className="h-10 w-full rounded-xl border border-[#ffe0d5] bg-white px-3.5 text-xs text-[#0f172a] outline-none transition focus:border-[#ff7442] focus:ring-2 focus:ring-[#ff7442]/10"
                 >
                   <option value="vi">Tiếng Việt (vi)</option>
                   <option value="en">English (en)</option>
@@ -286,7 +286,7 @@ export function IngestHub() {
 
             {/* Error message */}
             {videoError && (
-              <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-300">
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs text-red-600">
                 {videoError}
               </div>
             )}
@@ -315,10 +315,10 @@ export function IngestHub() {
 
           {/* Ingestion Results */}
           {videoResult && (
-            <div className="mt-6 animate-in fade-in space-y-4 rounded-xl border border-emerald-400/30 bg-emerald-500/5 p-5 duration-200">
-              <div className="flex items-center justify-between border-b border-emerald-400/20 pb-3">
-                <div className="flex items-center space-x-2 text-emerald-300">
-                  <CheckCircle2 className="h-4 w-4" />
+            <div className="mt-6 animate-in fade-in space-y-4 rounded-[20px] border border-emerald-200 bg-emerald-50/40 p-5 duration-200">
+              <div className="flex items-center justify-between border-b border-emerald-200/60 pb-3">
+                <div className="flex items-center space-x-2 text-emerald-800">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                   <span className="text-sm font-bold">
                     Video Đã Được Ingest & Vector Hóa Thành Công!
                   </span>
@@ -328,42 +328,42 @@ export function IngestHub() {
 
               {/* Summary Metric Badges */}
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div className="rounded-lg border border-[#2e3352] bg-black/60 p-3">
-                  <div className="flex items-center gap-1 text-[10px] font-bold uppercase text-zinc-400">
-                    <Users className="h-3 w-3 text-purple-300" />
+                <div className="rounded-[16px] border border-[#f1f5f9] bg-white p-3.5 shadow-xs">
+                  <div className="flex items-center gap-1 text-[10px] font-bold uppercase text-[#667085]">
+                    <Users className="h-3 w-3 text-[#ff7442]" />
                     <span>Số người nói</span>
                   </div>
-                  <p className="mt-1 text-base font-bold text-purple-300">
+                  <p className="mt-1 text-base font-extrabold text-[#0f172a] font-heading">
                     {videoResult.speaker_count} speaker(s)
                   </p>
                 </div>
 
-                <div className="rounded-lg border border-[#2e3352] bg-black/60 p-3">
-                  <div className="flex items-center gap-1 text-[10px] font-bold uppercase text-zinc-400">
-                    <Clock className="h-3 w-3 text-cyan-300" />
+                <div className="rounded-[16px] border border-[#f1f5f9] bg-white p-3.5 shadow-xs">
+                  <div className="flex items-center gap-1 text-[10px] font-bold uppercase text-[#667085]">
+                    <Clock className="h-3 w-3 text-cyan-600" />
                     <span>Thời lượng</span>
                   </div>
-                  <p className="mt-1 text-base font-bold text-cyan-300">
+                  <p className="mt-1 text-base font-extrabold text-[#0f172a] font-heading">
                     {videoResult.duration_seconds > 0
                       ? `${videoResult.duration_seconds.toFixed(1)}s`
                       : "Auto"}
                   </p>
                 </div>
 
-                <div className="rounded-lg border border-[#2e3352] bg-black/60 p-3">
-                  <span className="text-[10px] font-bold uppercase text-zinc-400">
+                <div className="rounded-[16px] border border-[#f1f5f9] bg-white p-3.5 shadow-xs">
+                  <span className="text-[10px] font-bold uppercase text-[#667085]">
                     Vector Indexed
                   </span>
-                  <p className="mt-1 text-base font-bold text-emerald-300">
+                  <p className="mt-1 text-base font-extrabold text-emerald-600 font-heading">
                     {videoResult.total_indexed} record
                   </p>
                 </div>
 
-                <div className="rounded-lg border border-[#2e3352] bg-black/60 p-3">
-                  <span className="text-[10px] font-bold uppercase text-zinc-400">
+                <div className="rounded-[16px] border border-[#f1f5f9] bg-white p-3.5 shadow-xs">
+                  <span className="text-[10px] font-bold uppercase text-[#667085]">
                     Hashtags
                   </span>
-                  <p className="mt-1 truncate text-xs font-semibold text-zinc-200">
+                  <p className="mt-1 truncate text-xs font-semibold text-[#0f172a]">
                     {videoResult.hashtag || "(Trống)"}
                   </p>
                 </div>
@@ -372,10 +372,10 @@ export function IngestHub() {
               {/* Caption & Summary */}
               {videoResult.caption && (
                 <div className="space-y-1">
-                  <span className="text-xs font-bold text-zinc-300">
+                  <span className="text-xs font-bold text-[#475569]">
                     Caption:
                   </span>
-                  <p className="text-xs text-white bg-black/40 p-2.5 rounded-lg border border-[#2e3352]">
+                  <p className="text-xs text-[#0f172a] bg-white p-3 rounded-[14px] border border-[#f1f5f9] shadow-xs">
                     {videoResult.caption}
                   </p>
                 </div>
@@ -383,10 +383,10 @@ export function IngestHub() {
 
               {videoResult.summary && (
                 <div className="space-y-1">
-                  <span className="text-xs font-bold text-zinc-300">
+                  <span className="text-xs font-bold text-[#475569]">
                     Tóm tắt nội dung (LLM Summary):
                   </span>
-                  <p className="text-xs text-zinc-300 bg-black/40 p-2.5 rounded-lg border border-[#2e3352]">
+                  <p className="text-xs text-[#475569] bg-white p-3 rounded-[14px] border border-[#f1f5f9] shadow-xs">
                     {videoResult.summary}
                   </p>
                 </div>
@@ -395,24 +395,24 @@ export function IngestHub() {
               {/* Diarized Transcript Segments */}
               {videoResult.transcript_segments &&
                 videoResult.transcript_segments.length > 0 && (
-                  <div className="space-y-2 pt-2 border-t border-[#2e3352]">
-                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <Users className="h-3.5 w-3.5 text-[#9184d9]" />
+                  <div className="space-y-2 pt-2 border-t border-[#f1f5f9]">
+                    <span className="text-xs font-bold text-[#0f172a] flex items-center gap-1.5">
+                      <Users className="h-3.5 w-3.5 text-[#ff7442]" />
                       <span>Hội thoại phân chia theo người nói (Diarization):</span>
                     </span>
-                    <div className="max-h-60 overflow-y-auto space-y-1.5 rounded-lg border border-[#2e3352] bg-black/40 p-3 text-xs">
+                    <div className="max-h-60 overflow-y-auto space-y-1.5 rounded-[16px] border border-[#f1f5f9] bg-white p-3.5 text-xs shadow-xs">
                       {videoResult.transcript_segments.map((seg, idx) => (
                         <div
                           key={idx}
-                          className="flex items-start gap-2 border-b border-zinc-800/60 pb-1.5 last:border-0"
+                          className="flex items-start gap-2 border-b border-[#f1f5f9] pb-2 last:border-0"
                         >
-                          <span className="rounded bg-[#9184d9]/20 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-[#c5bdf0] shrink-0">
+                          <span className="rounded-full bg-[#fff0eb] border border-[#ffe0d5] px-2 py-0.5 font-mono text-[10px] font-semibold text-[#ff7442] shrink-0">
                             {seg.speaker || "SPEAKER"}
                           </span>
-                          <span className="font-mono text-[10px] text-zinc-400 shrink-0">
+                          <span className="font-mono text-[10px] text-[#94a3b8] shrink-0 pt-0.5">
                             [{seg.start.toFixed(1)}s - {seg.end.toFixed(1)}s]
                           </span>
-                          <span className="text-zinc-200">{seg.text}</span>
+                          <span className="text-[#0f172a]">{seg.text}</span>
                         </div>
                       ))}
                     </div>
@@ -424,11 +424,11 @@ export function IngestHub() {
                 videoResult.transcript_segments.length === 0) &&
                 (videoResult.transcript_with_speakers ||
                   videoResult.transcript) && (
-                  <div className="space-y-1 pt-2 border-t border-[#2e3352]">
-                    <span className="text-xs font-bold text-white">
+                  <div className="space-y-1 pt-2 border-t border-[#f1f5f9]">
+                    <span className="text-xs font-bold text-[#0f172a]">
                       Nội dung Transcript:
                     </span>
-                    <p className="font-mono text-xs text-zinc-300 bg-black/40 p-3 rounded-lg border border-[#2e3352] whitespace-pre-wrap max-h-48 overflow-y-auto">
+                    <p className="font-mono text-xs text-[#0f172a] bg-white p-3.5 rounded-[14px] border border-[#f1f5f9] whitespace-pre-wrap max-h-48 overflow-y-auto shadow-xs">
                       {videoResult.transcript_with_speakers ||
                         videoResult.transcript}
                     </p>
