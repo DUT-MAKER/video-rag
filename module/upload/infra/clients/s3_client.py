@@ -50,6 +50,22 @@ class S3Client(IS3Client):
             ExtraArgs=extra_args if extra_args else None,
         )
 
+    def upload_file(
+        self,
+        file_path: str,
+        bucket: str,
+        key: str,
+        content_type: str | None = None,
+    ) -> None:
+        """Upload a local file directly to S3/MinIO using boto3."""
+        extra_args = {"ContentType": content_type} if content_type else {}
+        self._client.upload_file(
+            file_path,
+            bucket,
+            key,
+            ExtraArgs=extra_args if extra_args else None,
+        )
+
     def get_object_url(self, bucket: str, key: str) -> str:
         """Generates the direct HTTP/HTTPS URL for the S3 object."""
         if self._endpoint_url:

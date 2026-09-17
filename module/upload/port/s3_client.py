@@ -24,6 +24,16 @@ class IS3Client(Protocol):
         """Generate and return the public/internal URL for a given bucket and key."""
         ...
 
+    def upload_file(
+        self,
+        file_path: str,
+        bucket: str,
+        key: str,
+        content_type: str | None = None,
+    ) -> None:
+        """Upload a local file directly to a specific S3 bucket and key."""
+        ...
+
     def generate_presigned_upload_url(self, bucket: str, key: str, content_type: str, expires_in: int = 3600) -> str:
         """Generate a presigned PUT upload URL."""
         ...

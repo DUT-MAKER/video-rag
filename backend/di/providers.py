@@ -180,11 +180,13 @@ class VideoRagModuleProvider(Provider):
         embedding_port: IEmbeddingPort,
         vector_store_port: IVectorStorePort,
         extract_service: VideoExtractionPipelineService,
+        s3_client: IS3Client,
     ) -> IngestVideoDataUseCase:
         return IngestVideoDataUseCase(
             embedding_port=embedding_port,
             vector_store_port=vector_store_port,
             extract_service=extract_service,
+            s3_client=s3_client,
         )
 
     @provide(scope=Scope.REQUEST)
