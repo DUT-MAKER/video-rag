@@ -22,7 +22,7 @@ export interface StandardApiResponse<T> {
 }
 
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8020/api/v1";
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -293,7 +293,7 @@ export async function ingestVideoFile(
   return res.data.data;
 }
 
-// Format local media URL (e.g. data/storage/thumbnails/... -> http://localhost:8020/data/storage/thumbnails/...)
+// Format local media URL (e.g. data/storage/thumbnails/... -> http://localhost:8000/data/storage/thumbnails/...)
 export function formatMediaUrl(url: string): string {
   if (!url) return "";
   if (url.startsWith("http://") || url.startsWith("https://")) {

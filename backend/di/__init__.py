@@ -1,5 +1,5 @@
-"""Dependency Injection package."""
+"""Dependency injection package.
 
-from .setup import setup_di
-
-__all__ = ["setup_di"]
+Keep package initialization lightweight so the crawler worker can import the
+shared database module without constructing all API providers.
+"""

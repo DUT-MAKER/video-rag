@@ -11,6 +11,7 @@ import module.auth.infra.persistence.models.user  # noqa: F401
 from alembic import context
 from core.config import db_settings
 from module.auth.infra.persistence.models.base import Base
+from video_crawler.infrastructure import models as _crawler_models  # noqa: F401
 
 config = context.config
 

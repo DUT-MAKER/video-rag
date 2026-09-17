@@ -106,6 +106,12 @@ class VideoExtractionPipelineService:
                     )
                 except Exception as s3_err:
                     logger.warning(f"⚠️ [ExtractionPipeline] Không thể tải thumbnail lên MinIO: {s3_err}")
+                if not final_thumbnail_path:
+                    target_dir = output_thumbnail_dir or os.path.join("data", "storage", "thumbnails")
+                    os.makedirs(target_dir, exist_ok=True)
+                    final_thumbnail_path = os.path.join(target_dir, f"{stem}_thumb.jpg")
+                    shutil.copyfile(best_thumb_temp, final_thumbnail_path)
+                    logger.info(f"✅ [ExtractionPipeline] Đã lưu thumbnail tại: {final_thumbnail_path}")
 
             # 5. Format speaker-labeled transcript
             extraction_result = VideoExtractionResult(

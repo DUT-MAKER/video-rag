@@ -215,6 +215,19 @@ class PgVectorAdapter(IVectorStorePort):
         """Retrieve paginated list of all video records (id, metadata, document) without vectors."""
         await self.initialize()
 
+        if self._use_fallback:
+            items = list(self._memory_store.values())
+            total = len(items)
+            page_items = items[offset : offset + limit]
+            results = [
+                {
+                    "id": item["id"],
+                    "document": item.get("document", ""),
+                    "metadata": item.get("metadata", {}),
+                }
+                for item in page_items
+            ]
+            return results, total
         total = await self.count()
         query = f"""
         SELECT id, document, metadata
@@ -242,7 +255,16 @@ class PgVectorAdapter(IVectorStorePort):
 
     async def get_by_id(self, video_id: str) -> dict[str, Any] | None:
         """Retrieve a single video record by ID without vector embedding."""
-        await self.initialize() 
+        await self.initialize()
+        if self._use_fallback:
+            item = self._memory_store.get(video_id)
+            if not item:
+                return None
+            return {
+                "id": item["id"],
+                "document": item.get("document", ""),
+                "metadata": item.get("metadata", {}),
+            }
 
         query = f"""
         SELECT id, document, metadata

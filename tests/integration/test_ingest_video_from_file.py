@@ -121,7 +121,6 @@ async def test_end_to_end_video_ingest_pipeline(temp_workspace, synthetic_video)
     media_extractor = FFmpegMediaExtractorAdapter()
     thumbnail_selector = VisionThumbnailSelectorAdapter(fallback_mode=True)
     transcriber = BentoWhisperXAdapter(fallback_mode=True)
-
     from module.video_rag.service.video_store_service import VideoStoreService
 
     class MockTestS3Client:

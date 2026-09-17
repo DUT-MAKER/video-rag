@@ -97,6 +97,7 @@ class IngestVideoDataUseCase:
             f"(Speakers: {extraction.speaker_count}, Duration: {extraction.duration_seconds:.1f}s)"
         )
 
+        # Merge extracted information with user-provided metadata
         final_caption = input_data.caption or extraction.caption
         final_hashtag = input_data.hashtag or extraction.hashtag
         final_summary = extraction.summary

@@ -32,6 +32,54 @@ services:
     depends_on:
       - db
 
+  crawler-worker-facebook:
+    build:
+      context: .
+      dockerfile: video_crawler/Dockerfile
+    container_name: video-rag-crawler-facebook
+    restart: always
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}}
+      - CRAWLER_PLATFORM=facebook
+    volumes:
+      - ./video_crawler/var/secrets/sessions:/app/video_crawler/var/secrets/sessions:ro
+      - ./video_crawler/topics.json:/app/video_crawler/topics.json:ro
+      - crawler_work:/app/data/crawler-work
+    depends_on:
+      - db
+
+  crawler-worker-tiktok:
+    build:
+      context: .
+      dockerfile: video_crawler/Dockerfile
+    container_name: video-rag-crawler-tiktok
+    restart: always
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}}
+      - CRAWLER_PLATFORM=tiktok
+    volumes:
+      - ./video_crawler/var/secrets/sessions:/app/video_crawler/var/secrets/sessions:ro
+      - ./video_crawler/topics.json:/app/video_crawler/topics.json:ro
+      - crawler_work:/app/data/crawler-work
+    depends_on:
+      - db
+
+  crawler-worker-youtube:
+    build:
+      context: .
+      dockerfile: video_crawler/Dockerfile
+    container_name: video-rag-crawler-youtube
+    restart: always
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}}
+      - CRAWLER_PLATFORM=youtube
+    volumes:
+      - ./video_crawler/var/secrets/sessions:/app/video_crawler/var/secrets/sessions:ro
+      - ./video_crawler/topics.json:/app/video_crawler/topics.json:ro
+      - crawler_work:/app/data/crawler-work
+    depends_on:
+      - db
+
   web:
     image: node:22-alpine
     container_name: video-rag-web
@@ -48,3 +96,4 @@ services:
 volumes:
   postgres_data:
   web_node_modules:
+  crawler_work:
