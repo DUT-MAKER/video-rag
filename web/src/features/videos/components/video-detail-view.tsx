@@ -107,10 +107,10 @@ export function VideoDetailView({ videoId }: VideoDetailViewProps) {
   return (
     <div className="mx-auto max-w-7xl space-y-8 p-6 md:p-8">
       {/* Top Breadcrumb & Action */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border/60 pb-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-[#ffe6dc] pb-5">
         <Link
           href="/dashboard/videos"
-          className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
+          className="inline-flex items-center gap-2 text-xs font-bold text-[#667085] transition-colors hover:text-[#ff7442]"
         >
           <ArrowLeft className="h-4 w-4" />
           <span>Quay lại Kho Dữ Liệu Video</span>
@@ -118,17 +118,17 @@ export function VideoDetailView({ videoId }: VideoDetailViewProps) {
 
         <div className="flex items-center gap-3">
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={handleCopyTranscript}
             className="gap-2 text-xs"
           >
-            {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+            {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
             {copied ? "Đã sao chép" : "Sao chép Transcript"}
           </Button>
 
           <Link href={`/dashboard/generator`}>
-            <Button size="sm" className="gap-2 text-xs font-semibold">
+            <Button size="sm" className="gap-2 text-xs font-extrabold">
               <Sparkles className="h-3.5 w-3.5" />
               Tạo Kịch Bản Từ Mẫu Này
             </Button>
@@ -138,23 +138,23 @@ export function VideoDetailView({ videoId }: VideoDetailViewProps) {
 
       {/* Main Title & Metadata Badges */}
       <div className="space-y-3">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl lg:leading-snug">
+        <h1 className="text-2xl font-black tracking-tight text-[#0f172a] md:text-3xl lg:leading-snug [font-family:var(--font-heading)]">
           {detail.caption || "Video Không Có Tiêu Đề"}
         </h1>
 
-        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-[#667085]">
           {detail.duration_seconds > 0 && (
-            <div className="flex items-center gap-1.5 rounded-md bg-surface px-2.5 py-1 border border-border">
-              <Clock className="h-3.5 w-3.5 text-primary" />
-              <span className="font-mono font-medium text-foreground">
+            <div className="flex items-center gap-1.5 rounded-full border border-[#ffe0d5] bg-[#fff0eb] px-3 py-1 font-bold text-[#ff7442]">
+              <Clock className="h-3.5 w-3.5" />
+              <span className="font-mono text-[11px]">
                 {Math.round(detail.duration_seconds)} giây
               </span>
             </div>
           )}
 
-          <div className="flex items-center gap-1.5 rounded-md bg-surface px-2.5 py-1 border border-border">
-            <Users className="h-3.5 w-3.5 text-emerald-500" />
-            <span className="font-medium text-foreground">
+          <div className="flex items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 font-bold text-emerald-700">
+            <Users className="h-3.5 w-3.5" />
+            <span>
               {detail.speaker_count} người tham gia hội thoại
             </span>
           </div>
@@ -165,7 +165,7 @@ export function VideoDetailView({ videoId }: VideoDetailViewProps) {
                 <Badge
                   key={idx}
                   variant="secondary"
-                  className="bg-surface text-[11px] font-normal text-muted-foreground border-border/60"
+                  className="text-[11px]"
                 >
                   <Hash className="mr-0.5 h-2.5 w-2.5 opacity-60" />
                   {tag.replace(/^#/, "")}
@@ -181,7 +181,7 @@ export function VideoDetailView({ videoId }: VideoDetailViewProps) {
         {/* Left Column: Media Player / Thumbnail & Key Takeaways (5 Cols) */}
         <div className="space-y-6 lg:col-span-5">
           {/* Media Container */}
-          <Card className="overflow-hidden border-border/80 bg-zinc-950 shadow-lg">
+          <Card className="overflow-hidden rounded-[24px] border border-[#f1f5f9] bg-black shadow-lg">
             <div className="relative aspect-video w-full overflow-hidden bg-black flex items-center justify-center">
               {videoMediaUrl && (videoMediaUrl.endsWith(".mp4") || videoMediaUrl.endsWith(".mov") || videoMediaUrl.endsWith(".webm")) ? (
                 <video
@@ -198,7 +198,7 @@ export function VideoDetailView({ videoId }: VideoDetailViewProps) {
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="flex flex-col items-center justify-center gap-2 text-zinc-600">
+                <div className="flex flex-col items-center justify-center gap-2 text-slate-500">
                   <Film className="h-10 w-10 stroke-[1.5]" />
                   <span className="text-xs">Không có xem trước media</span>
                 </div>
@@ -208,24 +208,24 @@ export function VideoDetailView({ videoId }: VideoDetailViewProps) {
 
           {/* Hook Candidate Card */}
           {detail.hook_candidate && (
-            <Card className="border-border/60 bg-surface/40 p-5 shadow-sm">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
+            <div className="rounded-[22px] border border-[#ffe0d5] bg-[linear-gradient(135deg,#fff7f4,#ffffff)] p-5 shadow-xs">
+              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-[#ff7442]">
                 <Quote className="h-3.5 w-3.5" />
                 <span>Câu Hook Mở Đầu (3-5 Giây Đầu)</span>
               </div>
-              <p className="mt-2.5 text-sm font-medium italic leading-relaxed text-foreground/90">
+              <p className="mt-2.5 text-sm font-extrabold italic leading-relaxed text-[#0f172a] [font-family:var(--font-heading)]">
                 &ldquo;{detail.hook_candidate}&rdquo;
               </p>
-            </Card>
+            </div>
           )}
 
           {/* AI Summary Card */}
-          <Card className="border-border/60 bg-surface/40 p-5 shadow-sm space-y-2.5">
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-foreground">
-              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+          <Card className="rounded-[22px] border border-[#f1f5f9] bg-white p-5 shadow-xs space-y-2.5">
+            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-[#0f172a]">
+              <Sparkles className="h-3.5 w-3.5 text-[#ffbd2e]" />
               <span>Tóm Tắt Ý Chính Từ Video</span>
             </div>
-            <p className="text-xs leading-relaxed text-muted-foreground">
+            <p className="text-xs font-medium leading-relaxed text-[#667085]">
               {detail.summary || "Chưa có bản tóm tắt tự động cho video này."}
             </p>
           </Card>
@@ -233,21 +233,22 @@ export function VideoDetailView({ videoId }: VideoDetailViewProps) {
 
         {/* Right Column: Full Dialogue Transcript with Speaker Attribution (7 Cols) */}
         <div className="space-y-6 lg:col-span-7">
-          <Card className="border-border/60 bg-surface/40 p-6 shadow-sm flex flex-col h-full">
-            <div className="flex items-center justify-between border-b border-border/60 pb-4">
+          <Card className="rounded-[24px] border border-[#f1f5f9] bg-white p-6 shadow-xs flex flex-col h-full">
+            <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-4">
               <div className="flex items-center gap-2">
-                <Volume2 className="h-4 w-4 text-primary" />
-                <h3 className="text-sm font-semibold text-foreground">
+                <Volume2 className="h-4 w-4 text-[#ff7442]" />
+                <h3 className="text-sm font-extrabold text-[#0f172a] [font-family:var(--font-heading)]">
                   Hội Thoại Chi Tiết Phân Theo Giọng Nói (WhisperX Diarization)
                 </h3>
               </div>
-              <Badge variant="outline" className="text-[10px] font-mono">
+              <Badge variant="accent">
                 {transcriptLines.length} câu
               </Badge>
             </div>
 
             {/* Transcript Messages Container */}
-            <div className="mt-5 flex-1 space-y-4 max-h-[640px] overflow-y-auto pr-2">
+            <div className="mt-5 flex-1 space-y-3.5 max-h-[640px] overflow-y-auto pr-2">
+
               {transcriptLines.length > 0 ? (
                 transcriptLines.map((line, idx) => {
                   // Check if line matches SPEAKER_XX format
@@ -262,49 +263,50 @@ export function VideoDetailView({ videoId }: VideoDetailViewProps) {
                     return (
                       <div
                         key={idx}
-                        className={`flex flex-col gap-1 rounded-xl p-3.5 transition-colors ${
+                        className={`flex flex-col gap-1.5 rounded-[20px] p-4 transition-colors ${
                           isSpeaker0
-                            ? "bg-primary/5 border border-primary/10 ml-0 mr-8"
-                            : "bg-surface/80 border border-border/60 ml-8 mr-0"
+                            ? "border border-[#ffe0d5] bg-[#fff0eb] ml-0 mr-8"
+                            : "border border-[#f1f5f9] bg-[#f8fafc] ml-8 mr-0"
                         }`}
                       >
                         <div className="flex items-center justify-between text-[11px]">
                           <span
-                            className={`font-semibold ${
-                              isSpeaker0 ? "text-primary" : "text-emerald-400"
+                            className={`font-black uppercase tracking-wider ${
+                              isSpeaker0 ? "text-[#ff7442]" : "text-emerald-700"
                             }`}
                           >
                             {speakerTag}
                           </span>
                           {timestamp && (
-                            <span className="font-mono text-[10px] text-muted-foreground">
+                            <span className="font-mono text-[10px] font-bold text-[#94a3b8]">
                               {timestamp}
                             </span>
                           )}
                         </div>
-                        <p className="text-xs leading-relaxed text-foreground/95">
+                        <p className="text-xs font-medium leading-relaxed text-[#0f172a]">
                           {speechText}
                         </p>
                       </div>
                     );
                   }
 
-                  // Plain text line
                   return (
                     <div
                       key={idx}
-                      className="rounded-lg bg-surface/40 p-3 text-xs leading-relaxed text-foreground/90 border border-border/40"
+                      className="rounded-[18px] border border-[#f1f5f9] bg-[#f8fafc] p-3 text-xs leading-relaxed text-[#475569]"
                     >
                       {line}
                     </div>
                   );
                 })
               ) : (
-                <div className="flex min-h-[200px] items-center justify-center text-xs text-muted-foreground italic">
-                  Không có nội dung bản ghi âm thanh cho video này.
+                <div className="flex h-48 flex-col items-center justify-center gap-2 text-center text-[#94a3b8]">
+                  <Volume2 className="h-8 w-8 stroke-[1.5]" />
+                  <p className="text-xs">Chưa có dữ liệu lời thoại được trích xuất.</p>
                 </div>
               )}
             </div>
+
           </Card>
         </div>
       </div>

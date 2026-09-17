@@ -21,24 +21,16 @@ def dummy_audio_file():
         os.unlink(path)
 
 
-async def test_bento_whisperx_fallback_mode(dummy_audio_file):
-    # Testing fallback mode when remote BentoML server is offline
+async def test_bento_whisperx_remote_failure(dummy_audio_file):
+    # Testing when remote BentoML server is offline or fails
     adapter = BentoWhisperXAdapter(
         bento_url="http://localhost:9999",  # non-existent port
-        fallback_mode=True,
     )
-    result = await adapter.transcribe(dummy_audio_file, language="vi")
-
-    assert result.speaker_count == 2
-    assert len(result.segments) == 4
-    assert result.segments[0].speaker == "SPEAKER_00"
-    assert result.segments[1].speaker == "SPEAKER_01"
-    assert "90% mọi người thất bại" in result.full_text
-    assert result.language == "vi"
-    assert result.duration_seconds > 0
+    with pytest.raises(TranscriptionError):
+        await adapter.transcribe(dummy_audio_file, language="vi")
 
 
 async def test_bento_whisperx_file_not_found():
-    adapter = BentoWhisperXAdapter(fallback_mode=False)
+    adapter = BentoWhisperXAdapter()
     with pytest.raises(TranscriptionError):
         await adapter.transcribe("/non/existent/path.wav")

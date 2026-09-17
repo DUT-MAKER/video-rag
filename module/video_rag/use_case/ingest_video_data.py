@@ -4,8 +4,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+import hashlib
+import mimetypes
+import os
+from pathlib import Path
+
 from loguru import logger
 
+from core.config import s3_settings
+from module.upload.port.s3_client import IS3Client
 from module.video_rag.domain.entities.extraction_result import VideoExtractionResult
 from module.video_rag.domain.entities.video_record import RawVideoRecord
 from module.video_rag.port.embedding_port import IEmbeddingPort
@@ -54,10 +61,12 @@ class IngestVideoDataUseCase:
         embedding_port: IEmbeddingPort,
         vector_store_port: IVectorStorePort,
         extract_service: VideoExtractionPipelineService,
+        s3_client: IS3Client | None = None,
     ) -> None:
         self._embed = embedding_port
         self._vector_store = vector_store_port
         self._extract = extract_service
+        self._s3 = s3_client
 
     async def execute(
         self,
@@ -93,6 +102,67 @@ class IngestVideoDataUseCase:
         final_summary = extraction.summary
         final_video_url = input_data.video_url or str(video_path)
         final_image_url = extraction.thumbnail_path
+
+        # Generate deterministic record ID
+        seed = f"{video_path}_{final_caption}_{extraction.transcript[:100]}"
+        record_id = hashlib.sha256(seed.encode("utf-8")).hexdigest()[:16]
+
+        # 2. Upload video & thumbnail to S3/MinIO if s3_client is available
+        if self._s3 is not None and s3_settings.bucket_name:
+            bucket = s3_settings.bucket_name
+
+            # 2.1 Upload video file if local path exists
+            if os.path.exists(str(video_path)):
+                try:
+                    ext = Path(str(video_path)).suffix or ".mp4"
+                    video_key = f"videos/{record_id}{ext}"
+                    content_type, _ = mimetypes.guess_type(str(video_path))
+                    content_type = content_type or "video/mp4"
+
+                    logger.info(
+                        f"☁️ [IngestVideoDataUseCase] Đang upload video lên S3/MinIO: s3://{bucket}/{video_key}..."
+                    )
+                    self._s3.upload_file(
+                        file_path=str(video_path),
+                        bucket=bucket,
+                        key=video_key,
+                        content_type=content_type,
+                    )
+                    final_video_url = self._s3.get_object_url(bucket=bucket, key=video_key)
+                    logger.info(
+                        f"✅ [IngestVideoDataUseCase] Upload video thành công! MinIO URL: {final_video_url}"
+                    )
+                except Exception as exc:
+                    logger.warning(
+                        f"⚠️ [IngestVideoDataUseCase] Không thể upload video lên S3/MinIO ({exc}), dùng URL cục bộ: {final_video_url}"
+                    )
+
+            # 2.2 Upload thumbnail file if local path exists
+            if extraction.thumbnail_path and os.path.exists(extraction.thumbnail_path):
+                try:
+                    ext = Path(extraction.thumbnail_path).suffix or ".jpg"
+                    thumb_key = f"thumbnails/{record_id}{ext}"
+                    content_type, _ = mimetypes.guess_type(extraction.thumbnail_path)
+                    content_type = content_type or "image/jpeg"
+
+                    logger.info(
+                        f"☁️ [IngestVideoDataUseCase] Đang upload thumbnail lên S3/MinIO: s3://{bucket}/{thumb_key}..."
+                    )
+                    self._s3.upload_file(
+                        file_path=extraction.thumbnail_path,
+                        bucket=bucket,
+                        key=thumb_key,
+                        content_type=content_type,
+                    )
+                    final_image_url = self._s3.get_object_url(bucket=bucket, key=thumb_key)
+                    logger.info(
+                        f"✅ [IngestVideoDataUseCase] Upload thumbnail thành công! MinIO URL: {final_image_url}"
+                    )
+                except Exception as exc:
+                    logger.warning(
+                        f"⚠️ [IngestVideoDataUseCase] Không thể upload thumbnail lên S3/MinIO ({exc}), dùng URL cục bộ: {final_image_url}"
+                    )
+
         segments_dict = [
             {
                 "start": seg.start,
@@ -104,6 +174,7 @@ class IngestVideoDataUseCase:
         ]
 
         record = RawVideoRecord(
+            id=record_id,
             caption=final_caption,
             hashtag=final_hashtag,
             transcript=extraction.transcript,

@@ -93,6 +93,7 @@ class LLMSettings(BaseSettings):
     model_name: str = Field(default="ggml-org/gemma-4-e4b-it-GGUF:Q4_0", validation_alias="LLM_MODEL_NAME")
     temperature: float = Field(default=0.7, validation_alias="LLM_TEMPERATURE")
     max_tokens: int = Field(default=2048, validation_alias="LLM_MAX_TOKENS")
+    use_local_fallback: bool = Field(default=True, validation_alias="USE_LOCAL_FALLBACK")
 
 
 class EmbeddingSettings(BaseSettings):

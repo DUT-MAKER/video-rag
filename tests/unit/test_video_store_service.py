@@ -94,7 +94,7 @@ async def test_upload_thumbnail_file(video_store: VideoStoreService, mock_s3: Mo
             stem="video_12345",
         )
         assert "https://dutmakers3.dutai.io.vn" in url
-        assert "thumbnails/thumb_video_12345" in url
+        assert "thumbnails/video_12345" in url
         assert url.endswith(".jpg")
         assert len(mock_s3.uploaded_files) == 1
     finally:
@@ -105,11 +105,10 @@ async def test_upload_thumbnail_file(video_store: VideoStoreService, mock_s3: Mo
 async def test_upload_thumbnail_bytes(video_store: VideoStoreService, mock_s3: MockS3ClientForTest):
     img_data = b"\xff\xd8\xff\xe0raw_jpg_data"
     url = await video_store.upload_thumbnail_bytes(
-        image_bytes=img_data,
+        data=img_data,
         stem="banner_frame",
-        extension=".jpg",
         content_type="image/jpeg",
     )
     assert "https://dutmakers3.dutai.io.vn" in url
-    assert "thumbnails/thumb_banner_frame" in url
+    assert "thumbnails/banner_frame" in url
     assert len(mock_s3.uploaded_bytes) == 1

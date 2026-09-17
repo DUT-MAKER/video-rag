@@ -76,16 +76,16 @@ export function BenchmarkLibrary() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 p-6 text-white">
+    <div className="mx-auto max-w-6xl space-y-8 p-6 text-[#0f172a]">
       {/* Header */}
-      <div className="space-y-1.5 border-b border-zinc-800 pb-5">
-        <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-zinc-400">
+      <div className="space-y-1.5 border-b border-[#ffe6dc] pb-5">
+        <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-[#ea580c]">
           Knowledge Store Explorer
         </span>
-        <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+        <h1 className="text-2xl font-extrabold tracking-tight text-[#0f172a] md:text-3xl font-heading">
           Thư Viện Video Chuẩn Đối Sánh
         </h1>
-        <p className="max-w-2xl text-xs leading-relaxed text-zinc-300">
+        <p className="max-w-2xl text-xs leading-relaxed text-[#667085]">
           Tra cứu ngữ nghĩa (Semantic Search) trên không gian vector pgvector và
           kho lưu trữ MinIO để phân tích công thức hook, nhịp độ và cấu trúc
           video viral đã được kiểm chứng.
@@ -95,9 +95,9 @@ export function BenchmarkLibrary() {
       {/* Search Bar */}
       <form onSubmit={handleSearch} className="flex max-w-xl gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
+          <Search className="absolute left-3.5 top-3 h-4 w-4 text-[#94a3b8]" />
           <Input
-            className="pl-9"
+            className="pl-10"
             placeholder="Tìm theo chủ đề: kỷ luật 21 ngày, tài chính cá nhân, trì hoãn..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -106,7 +106,7 @@ export function BenchmarkLibrary() {
         <Button
           type="submit"
           disabled={isLoading || !query.trim()}
-          className="px-5"
+          className="px-6"
         >
           {isLoading ? "Đang truy vấn..." : "Truy vấn Vector"}
         </Button>
@@ -117,50 +117,50 @@ export function BenchmarkLibrary() {
         {items.map((item) => (
           <Card
             key={item.id}
-            className="group flex flex-col justify-between overflow-hidden border-zinc-700 bg-[#141418] shadow-sm transition-all hover:border-zinc-500"
+            className="group flex flex-col justify-between overflow-hidden rounded-[24px] border-[#f1f5f9] bg-white shadow-xs transition-all hover:-translate-y-1 hover:border-[#ffe0d5] hover:shadow-md"
           >
             {/* Visual Frame */}
-            <div className="relative flex aspect-video items-center justify-center overflow-hidden border-b border-zinc-700 bg-zinc-900">
+            <div className="relative flex aspect-video items-center justify-center overflow-hidden border-b border-[#f1f5f9] bg-[#fff6f2]">
               <button
                 type="button"
                 onClick={() => setActiveVideoUrl(item.video_url)}
-                className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/40 transition-all hover:bg-black/15"
+                className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/10 transition-all hover:bg-black/25"
               >
-                <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/40 bg-white/20 text-white shadow-md backdrop-blur-md transition-transform hover:scale-110">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-[#ff7442] to-[#ff8c64] text-white shadow-md transition-transform hover:scale-110">
                   <Play className="ml-0.5 h-5 w-5 fill-white" />
                 </div>
               </button>
 
               <div className="absolute right-3 top-3">
-                <Badge variant="mono">
+                <Badge variant="mono" className="bg-white/90 text-[#0f172a] shadow-xs">
                   {(item.similarity_score * 100).toFixed(0)}% Match
                 </Badge>
               </div>
             </div>
 
-            <CardContent className="flex flex-1 flex-col justify-between space-y-3 p-4">
-              <div className="space-y-2.5">
-                <h3 className="text-sm font-bold leading-snug text-white">
+            <CardContent className="flex flex-1 flex-col justify-between space-y-3.5 p-5">
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold leading-snug text-[#0f172a]">
                   {item.caption}
                 </h3>
 
                 {/* Hook Box */}
-                <div className="space-y-1 rounded-lg border border-orange-400/40 bg-orange-500/10 p-3">
-                  <span className="block text-[10px] font-bold uppercase tracking-wider text-orange-300">
+                <div className="space-y-1.5 rounded-[16px] border border-[#ffe0d5] bg-gradient-to-br from-[#fff6f2] to-[#ffeedd] p-3.5">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-[#ea580c]">
                     Viral Hook Formula
                   </span>
-                  <p className="text-xs font-medium italic leading-relaxed text-orange-100">
+                  <p className="text-xs font-semibold italic leading-relaxed text-[#0f172a]">
                     &ldquo;{item.matched_hook}&rdquo;
                   </p>
                 </div>
 
-                <p className="text-xs leading-relaxed text-zinc-300">
+                <p className="text-xs leading-relaxed text-[#667085]">
                   {item.summary}
                 </p>
               </div>
 
-              <div className="flex items-center justify-between border-t border-zinc-800 pt-3 text-xs">
-                <span className="font-mono text-[11px] font-semibold text-zinc-400">
+              <div className="flex items-center justify-between border-t border-[#f1f5f9] pt-3.5 text-xs">
+                <span className="font-mono text-[11px] font-semibold text-[#94a3b8]">
                   {item.id}
                 </span>
 
@@ -168,7 +168,7 @@ export function BenchmarkLibrary() {
                   <button
                     type="button"
                     onClick={() => setActiveVideoUrl(item.video_url)}
-                    className="inline-flex cursor-pointer items-center space-x-1.5 font-medium text-zinc-200 transition-colors hover:text-white"
+                    className="inline-flex cursor-pointer items-center space-x-1.5 font-medium text-[#ff7442] transition-colors hover:text-[#ea580c]"
                   >
                     <span>Xem video MinIO</span>
                     <ExternalLink className="h-3.5 w-3.5" />
@@ -182,16 +182,16 @@ export function BenchmarkLibrary() {
 
       {/* Video Player Modal */}
       {activeVideoUrl && (
-        <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm duration-200">
-          <div className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-zinc-700 bg-[#141418] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-zinc-700 p-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-white">
+        <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm duration-200">
+          <div className="relative w-full max-w-2xl overflow-hidden rounded-[28px] border border-[#ffe6dc] bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#f1f5f9] p-4.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#0f172a]">
                 MinIO Video Asset Player
               </span>
               <button
                 type="button"
                 onClick={() => setActiveVideoUrl(null)}
-                className="cursor-pointer rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white"
+                className="cursor-pointer rounded-full p-1.5 text-[#667085] transition-colors hover:bg-[#fff0eb] hover:text-[#ff7442]"
                 title="Đóng"
               >
                 <X className="h-4 w-4" />
@@ -202,14 +202,14 @@ export function BenchmarkLibrary() {
               <video
                 controls
                 autoPlay
-                className="max-h-[70vh] w-full rounded-lg"
+                className="max-h-[70vh] w-full rounded-[16px]"
                 src={activeVideoUrl}
               >
                 Trình duyệt không hỗ trợ thẻ video HTML5.
               </video>
             </div>
 
-            <div className="truncate border-t border-zinc-800 bg-[#0e0e12] p-3 font-mono text-[11px] text-zinc-300">
+            <div className="truncate border-t border-[#f1f5f9] bg-[#f8fafc] p-3.5 font-mono text-[11px] text-[#667085]">
               Source: {activeVideoUrl}
             </div>
           </div>

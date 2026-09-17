@@ -266,21 +266,21 @@ export function StudioView() {
   }, []);
 
   return (
-    <div className="bg-background text-foreground flex h-[calc(100vh-3.5rem)] w-full flex-col overflow-hidden">
+    <div className="flex h-[calc(100vh-7.5rem)] w-full flex-col overflow-hidden rounded-[24px] border border-[#ffe6dc] bg-[#fffcfb] text-[#0f172a] shadow-xs">
       {/* Studio Subheader */}
-      <div className="border-border bg-surface flex h-11 shrink-0 select-none items-center justify-between border-b px-4">
+      <div className="flex h-12 shrink-0 select-none items-center justify-between border-b border-[#ffe6dc] bg-[#fffcfb] px-5">
         <div className="flex items-center space-x-3">
           <button
             type="button"
             onClick={() => setShowSidebar((prev) => !prev)}
-            className="text-muted-foreground hover:text-foreground hover:bg-surface-hover cursor-pointer rounded-md p-1.5 transition-colors"
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-[#ffe6dc] bg-white text-[#475569] transition-colors hover:bg-[#fff0eb] hover:text-[#ff7442]"
             title="Toggle Sessions Sidebar"
           >
             <Menu className="h-4 w-4" />
           </button>
 
-          <span className="text-foreground text-xs font-semibold tracking-tight">
-            Conversational Studio
+          <span className="text-xs font-black tracking-tight text-[#0f172a] [font-family:var(--font-heading)]">
+            Conversational Studio Co-Pilot
           </span>
         </div>
 
@@ -289,16 +289,17 @@ export function StudioView() {
           <button
             type="button"
             onClick={() => setShowInspector((prev) => !prev)}
-            className={`cursor-pointer rounded-md border px-2.5 py-1 text-xs font-medium transition-all ${
+            className={`cursor-pointer rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
               showInspector
-                ? "bg-background text-foreground border-accent font-semibold"
-                : "bg-background text-muted-foreground border-border hover:bg-surface-hover hover:text-foreground"
+                ? "border border-[#ffe6dc] bg-[linear-gradient(90deg,#ff7442,#ff8c64)] text-white shadow-[0_4px_12px_rgba(255,116,66,0.22)]"
+                : "border border-[#ffe6dc] bg-white text-[#475569] hover:bg-[#fff0eb] hover:text-[#0f172a]"
             }`}
           >
             Script Inspector
           </button>
         </div>
       </div>
+
 
       {/* Main 3 Columns */}
       <div className="relative flex flex-1 overflow-hidden">
