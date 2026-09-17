@@ -27,6 +27,7 @@ from backend.presentation.schemas.video_dtos import (
     SearchPatternsRequestDTO,
 )
 from module.video_rag.domain.entities.extraction_result import VideoExtractionResult
+from module.video_rag.service.video_store_service import VideoStoreService
 from module.video_rag.use_case.generate_viral_script import GenerateViralScriptUseCase
 from module.video_rag.use_case.get_video_detail import GetVideoDetailUseCase
 from module.video_rag.use_case.ingest_video_data import (
@@ -48,6 +49,7 @@ router = APIRouter(tags=["Video RAG"])
 @inject
 async def ingest_video_from_file(
     use_case: FromDishka[IngestVideoDataUseCase],
+    video_store: FromDishka[VideoStoreService],
     file: UploadFile = File(..., description="Video/Audio file to upload and ingest"),
     caption: str = Form(default=""),
     hashtag: str = Form(default=""),
@@ -72,22 +74,42 @@ async def ingest_video_from_file(
         shutil.copyfileobj(file.file, buffer)
 
     file_size_mb = os.path.getsize(temp_path) / (1024 * 1024)
-    logger.info(f"✅ [API] Đã lưu file ({file_size_mb:.2f} MB). Bắt đầu gọi IngestVideoDataUseCase...")
+    logger.info(f"✅ [API] Đã lưu file ({file_size_mb:.2f} MB). Đang upload video async lên MinIO S3...")
+
+    # Upload video file asynchronously to MinIO via VideoStoreService
+    minio_video_url = str(temp_path)
+    try:
+        minio_video_url = await video_store.upload_video_file(
+            local_file_path=str(temp_path),
+            filename=filename,
+        )
+        logger.info(f"☁️ [API] Đã upload video lên MinIO thành công: {minio_video_url}")
+    except Exception as s3_err:
+        logger.warning(f"⚠️ Không thể upload video lên MinIO ({s3_err}), giữ đường dẫn tạm thời.")
 
     item_input = VideoItemInput(
         video_path=str(temp_path),
         caption=caption,
         hashtag=hashtag,
         language=language,
+        video_url=minio_video_url,
     )
     try:
         result = await use_case.execute(input_data=item_input)
     except Exception as e:
         logger.exception(f"❌ [API] Lỗi trong quá trình IngestVideoDataUseCase: {e}")
         raise e
+    finally:
+        # Clean up temporary uploaded file after extraction completes
+        if temp_path.exists():
+            try:
+                temp_path.unlink()
+                logger.info(f"🧹 [API] Đã dọn dẹp file upload tạm: {temp_path}")
+            except Exception as clean_err:
+                logger.debug(f"Không thể xóa file tạm {temp_path}: {clean_err}")
 
     extraction = result.latest_extraction or VideoExtractionResult(
-        video_path=str(temp_path),
+        video_path=minio_video_url,
         transcript="",
         transcript_with_speakers="",
     )
@@ -129,7 +151,7 @@ async def ingest_video_from_file(
             transcript_preview=preview,
             transcript_segments=segments_dto,
             thumbnail_path=record.image_url if record else extraction.thumbnail_path,
-            video_url=record.video_url if record else str(temp_path),
+            video_url=record.video_url if record else minio_video_url,
         ),
     )
 

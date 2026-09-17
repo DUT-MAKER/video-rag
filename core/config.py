@@ -66,11 +66,21 @@ class S3Settings(BaseSettings):
 
     model_config = _SETTINGS_CONFIG
 
-    endpoint: str = Field(default="", validation_alias="S3_ENDPOINT")
-    secure: bool = Field(default=False, validation_alias="S3_SECURE")
+    endpoint: str = Field(default="dutmakers3.dutai.io.vn", validation_alias="S3_ENDPOINT")
+    secure: bool = Field(default=True, validation_alias="S3_SECURE")
     access_key: str = Field(default="", validation_alias="S3_ACCESS_KEY")
     secret_key: str = Field(default="", validation_alias="S3_SECRET_KEY")
-    bucket_name: str = Field(default="boilerplate-uploads", validation_alias="S3_BUCKET_NAME")
+    bucket_name: str = Field(default="video-rag", validation_alias="S3_BUCKET_NAME")
+
+    @property
+    def clean_endpoint(self) -> str:
+        """Strip protocol if present in endpoint."""
+        ep = self.endpoint.strip()
+        if ep.startswith("https://"):
+            return ep[len("https://"):].rstrip("/")
+        if ep.startswith("http://"):
+            return ep[len("http://"):].rstrip("/")
+        return ep.rstrip("/")
 
 
 class LLMSettings(BaseSettings):

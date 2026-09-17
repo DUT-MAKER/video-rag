@@ -53,6 +53,7 @@ from module.video_rag.port.vector_store_port import IVectorStorePort
 from module.video_rag.service.video_extraction_service import (
     VideoExtractionPipelineService,
 )
+from module.video_rag.service.video_store_service import VideoStoreService
 from module.video_rag.use_case.chat_with_viral_assistant import (
     ChatWithViralAssistantUseCase,
 )
@@ -261,15 +262,17 @@ class VideoRagModuleProvider(Provider):
             api_base_url=llm_settings.api_base_url,
             api_key=llm_settings.api_key,
             model_name=llm_settings.model_name,
-            fallback_mode=llm_settings.use_local_fallback,
         )
 
     @provide
     def transcriber_port(self) -> ITranscriberPort:
         return BentoWhisperXAdapter(
             bento_url=transcriber_settings.bento_stt_url,
-            fallback_mode=llm_settings.use_local_fallback,
         )
+
+    @provide(scope=Scope.REQUEST)
+    def video_store_service(self, s3_client: IS3Client) -> VideoStoreService:
+        return VideoStoreService(s3_client=s3_client)
 
     @provide(scope=Scope.REQUEST)
     def video_extraction_service(
@@ -278,10 +281,12 @@ class VideoRagModuleProvider(Provider):
         transcriber_port: ITranscriberPort,
         thumbnail_selector_port: IThumbnailSelectorPort,
         llm_port: ILLMPort,
+        video_store_service: VideoStoreService,
     ) -> VideoExtractionPipelineService:
         return VideoExtractionPipelineService(
             media_extractor_port=media_extractor_port,
             transcriber_port=transcriber_port,
             thumbnail_selector_port=thumbnail_selector_port,
             llm_port=llm_port,
+            video_store_service=video_store_service,
         )

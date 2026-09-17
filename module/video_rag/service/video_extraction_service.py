@@ -22,6 +22,7 @@ from module.video_rag.port.llm_port import ILLMPort
 from module.video_rag.port.media_extractor_port import IMediaExtractorPort
 from module.video_rag.port.thumbnail_selector_port import IThumbnailSelectorPort
 from module.video_rag.port.transcriber_port import ITranscriberPort
+from module.video_rag.service.video_store_service import VideoStoreService
 
 
 class VideoExtractionPipelineService:
@@ -33,11 +34,13 @@ class VideoExtractionPipelineService:
         transcriber_port: ITranscriberPort,
         thumbnail_selector_port: IThumbnailSelectorPort,
         llm_port: ILLMPort,
+        video_store_service: VideoStoreService,
     ) -> None:
         self._media = media_extractor_port
         self._transcriber = transcriber_port
         self._thumbnail = thumbnail_selector_port
         self._llm = llm_port
+        self._store = video_store_service
 
     async def execute(
         self,
@@ -92,15 +95,17 @@ class VideoExtractionPipelineService:
                 video_context=transcription.full_text[:500],
             )
 
-            # Persist the selected thumbnail
+            # Upload selected thumbnail to MinIO via VideoStoreService
             final_thumbnail_path = ""
             if best_thumb_temp and os.path.exists(best_thumb_temp):
-                target_dir = output_thumbnail_dir or os.path.join("data", "storage", "thumbnails")
-                os.makedirs(target_dir, exist_ok=True)
                 stem = Path(video_path).stem
-                final_thumbnail_path = os.path.join(target_dir, f"{stem}_thumb.jpg")
-                shutil.copyfile(best_thumb_temp, final_thumbnail_path)
-                logger.info(f"✅ [ExtractionPipeline] Đã lưu thumbnail tại: {final_thumbnail_path}")
+                try:
+                    final_thumbnail_path = await self._store.upload_thumbnail_file(
+                        local_image_path=best_thumb_temp,
+                        stem=stem,
+                    )
+                except Exception as s3_err:
+                    logger.warning(f"⚠️ [ExtractionPipeline] Không thể tải thumbnail lên MinIO: {s3_err}")
 
             # 5. Format speaker-labeled transcript
             extraction_result = VideoExtractionResult(

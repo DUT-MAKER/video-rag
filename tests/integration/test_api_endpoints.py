@@ -182,4 +182,5 @@ def test_full_pipeline_search_generate() -> None:
         # Verify CTA and Benchmark References
         assert script["call_to_action"]["script"] != ""
         assert len(script["references"]) >= 1
-        assert "https://minio" in script["references"][0]["minio_video_url"]
+        ref_url = script["references"][0]["minio_video_url"]
+        assert "minio" in ref_url or "dutmakers3" in ref_url
