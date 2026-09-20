@@ -92,6 +92,29 @@ services:
     volumes:
       - ./web:/app
       - web_node_modules:/app/node_modules
+    
+  stt:
+    build:
+      context: .
+      dockerfile: services/stt_service/Dockerfile
+    container_name: video-rag-stt
+    restart: always
+    ports:
+      - "3001:3000"
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+      - WHISPER_DEVICE=cuda
+      - WHISPER_COMPUTE_TYPE=float16
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
 
 volumes:
   postgres_data:
